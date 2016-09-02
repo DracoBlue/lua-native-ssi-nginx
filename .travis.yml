@@ -1,0 +1,9 @@
+sudo: required
+before_install:
+  - cp .travis/Dockerfile .
+  - docker build -t lua-native-ss-nginx .
+  - docker -d run -p127.0.0.1:4777:4777 -p127.0.0.1:4778:4778 -p127.0.0.1:4780:80 -it lua-native-ss-nginx
+services:
+  - docker
+
+script: bash run-tests.sh
