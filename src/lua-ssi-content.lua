@@ -82,5 +82,5 @@ if res then
     ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
     ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
     ngx.ctx.res = res
-    ngx.say(body)
+    ngx.print(body)
 end
