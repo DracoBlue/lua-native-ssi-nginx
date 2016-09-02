@@ -1,0 +1,1 @@
+{"thisIsThe": "index", "sub_resources": [{"thisIsA": "subResource", "sub_sub_resources": [{"thisIsA": "subSubResource"}, {"thisIsA": "subSubResource"}, {"thisIsA": "subSubResource"}]}, {"thisIsA": "subResource", "sub_sub_resources": [{"thisIsA": "subSubResource"}, {"thisIsA": "subSubResource"}, {"thisIsA": "subSubResource"}]}] }
