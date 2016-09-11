@@ -1,4 +1,6 @@
 FROM helder/nginx-extras
+RUN apt-get update
+RUN apt-get install lua-cjson
 ADD .travis/port-4777-app.conf /etc/nginx/sites-enabled/port-4777-app.conf
 ADD .travis/port-4778-app.conf /etc/nginx/sites-enabled/port-4778-app.conf
 ADD src/lua-ssi-content.lua /etc/nginx/lua-ssi-content.lua

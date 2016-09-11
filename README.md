@@ -11,7 +11,7 @@ This solution has some  advantages over the c ssi version:
 * it (will) allow regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
 * it works with lua module
 * it generates and handles etags based on md5 *after* all ssi includes have been performed
-* it (will) handle and sanitize invalid json in subrequests
+* it handles and sanitizes invalid json in subrequests
 * it will disable ssi if [Surrogate-Control](https://www.w3.org/TR/edge-arch/) Header is sent by origin and does not contain `content="SSI/1.0"`
 
 
@@ -39,12 +39,51 @@ location /ssi-api-gateway/ {
 location / {
 	lua_need_request_body on; # otherwise the request_body is not available for POST requests!
 	set $ssi_api_gateway_prefix "/ssi-api-gateway";
+	set $ssi_validate_json true;
+	set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
 	content_by_lua_file "/etc/nginx/lua-ssi-content.lua";
 	header_filter_by_lua_file "/etc/nginx/lua-ssi-header.lua";
 }
 ```
 
 The `ssi-api-gateway` location is necessary to use e.g. nginx's caching layer and such things.
+
+## Activate JSON Validation
+
+**Prerequisites**: Install cjson (e.g. `apt-get install lua-cjson` to activate this feature. Otherwise you get the following message:
+`Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!`.
+
+If you want to ensure, that subrequested json is always valid, you can activate this in the nginx location:
+
+``` txt
+set $ssi_validate_json true;
+set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
+``` txt
+
+If you setup the configuration like this, the following ssi:
+
+``` txt
+GET /broken_json_include/
+{"thisIsThe": "index", "sub_resources": [<!--# include file="/broken_json_include/broken_sub_resource.json" -->] }
+
+GET /broken_json_include/broken_sub_resource.json
+{"thisIsA": "subResource", "with invalud json}
+```
+
+will result in the following valid json response:
+
+``` json
+{
+	"error": "invalid json",
+	"brokenSsiRequests": [
+		{
+			"url": "\/broken_json_include\/broken_sub_resource.json",
+			"message": "Expected object key string but found unexpected end of string at character 47"
+		}
+	],
+	"message": "Expected object key string but found unexpected end of string at character 91","url":"\/broken_json_include\/"
+}
+```
 
 ## Development
 

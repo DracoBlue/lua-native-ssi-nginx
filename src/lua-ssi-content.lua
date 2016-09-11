@@ -1,7 +1,34 @@
 
 local prefix = ngx.var.ssi_api_gateway_prefix
+local invalidJsonFallback = ngx.var.ssi_invalid_json_fallback or '{"error": "invalid json in ssi", "url": %%URL%%, "message": %%MESSAGE%%}'
+local validateJson = false
+if ngx.var.ssi_validate_json == "true"
+then
+    validateJson = true
+end
 
 local res = ngx.location.capture(prefix .. ngx.var.request_uri, {method = ngx["HTTP_" .. ngx.var.request_method], body = ngx.var.request_body})
+
+local cjson = (function(validateJson)
+    if not validateJson then
+        return false
+    end
+
+    local hasCjson, cjson = pcall(function()
+        return require "cjson.safe"
+    end)
+
+    if (hasCjson)
+    then
+        return cjson
+    end
+
+    return false
+end)(validateJson)
+
+if validateJson and not cjson then
+    ngx.log(ngx.STDERR, "Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!")
+end
 
 ngx.log(ngx.STDERR, "request_uri: ", prefix .. ngx.var.request_uri)
 local regularExpression = '<!%-%-# include file="[^"]+" %-%->'
@@ -82,5 +109,32 @@ if res then
     ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
     ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
     ngx.ctx.res = res
+
+    if cjson and validateJson
+    then
+        local value, errorMessage = cjson.decode(body)
+        if errorMessage then
+            body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
+            body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+
+            if totalSsiSubRequestsCount ~= 0
+            then
+                local bodyTable = cjson.decode(body)
+                bodyTable.brokenSsiRequests = {}
+                -- loop over the responses table
+                for ssiRequestUrl, ssiResponse in pairs(ssiResponses) do
+                    ssiResponse = string.gsub(ssiResponse.body, regularExpression, "{}")
+                    local ssiResponseDecodedValue, ssiResponseDecodingErrorMessage = cjson.decode(ssiResponse)
+                    if (ssiResponseDecodingErrorMessage)
+                    then
+                        table.insert(bodyTable.brokenSsiRequests, {url = string.sub(ssiRequestUrl, string.len(prefix) + 1), message = ssiResponseDecodingErrorMessage })
+                    end
+                end
+
+                body = cjson.encode(bodyTable)
+            end
+        end
+    end
+
     ngx.print(body)
 end
