@@ -12,8 +12,14 @@ cd tests
 for file in `ls *.txt`
 do
 	TEST_NAME=`echo "$file" | cut -f 1 -d '.'`
-	curl -sS "localhost:4778/${TEST_NAME}/" > "${TEST_NAME}.result"
-	current_exit_code="${?}"
+	if [ -f "$TEST_NAME.sh" ]
+	then
+		bash "$TEST_NAME.sh" > "${TEST_NAME}.result"
+		current_exit_code="${?}"
+	else
+		curl -sS "localhost:4778/${TEST_NAME}/" > "${TEST_NAME}.result"
+		current_exit_code="${?}"
+	fi
 	if [ "${current_exit_code}" -ne "0" ]
 	then
 		echo "  [  ] $TEST_NAME"
