@@ -5,9 +5,8 @@ local res = ngx.location.capture(prefix .. ngx.var.request_uri)
 
 ngx.log(ngx.STDERR, "request_uri: ", prefix .. ngx.var.request_uri)
 local regularExpression = '<!%-%-# include file="[^"]+" %-%->'
-local ssiResponses = {}
 
-local getSsiRequestsAndCount = function(body)
+local getSsiRequestsAndCount = function(ssiResponses, body)
     local ssiRequests = {}
     local ssiRequestsCount = 0
     local ssiMatchesCount = 0
@@ -34,11 +33,12 @@ if res then
 --    ngx.say("status: ", res.status)
 --    ngx.say("body:")
 --    ngx.print(res.body)
+    local ssiResponses = {}
     local body = res.body
     local totalSsiSubRequestsCount = 0
     local totalSsiIncludesCount = 0
 
-    local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(body)
+    local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
 
     while ssiMatchesCount > 0
     do
@@ -72,7 +72,7 @@ if res then
         totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
 
         body = string.gsub(body, regularExpression, replacer)
-        ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(body)
+        ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
     end
     local md5 = ngx.md5(body)
 --    ngx.log(ngx.STDERR, "sent?", ngx.headers_sent)
