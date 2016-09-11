@@ -3,10 +3,15 @@ local prefix = ngx.var.ssi_api_gateway_prefix
 local invalidJsonFallback = ngx.var.ssi_invalid_json_fallback or '{"error": "invalid json in ssi", "url": %%URL%%, "message": %%MESSAGE%%}'
 local validateJson = false
 local validateJsonTypes = {}
-if ngx.var.ssi_validate_json_types ~= ""
+if ngx.var.ssi_validate_json_types ~= nil and ngx.var.ssi_validate_json_types ~= ""
 then
     validateJson = true
     validateJsonTypes = string.gmatch(ngx.var.ssi_validate_json_types, "%S+")
+end
+local ssiTypes = string.gmatch(".*", "%S+")
+if ngx.var.ssi_types ~= nil and ngx.var.ssi_types ~= ""
+then
+    ssiTypes = string.gmatch(ngx.var.ssi_types, "%S+")
 end
 
 local res = ngx.location.capture(prefix .. ngx.var.request_uri, {method = ngx["HTTP_" .. ngx.var.request_method], body = ngx.var.request_body})
@@ -20,6 +25,21 @@ local getContentTypeFromHeaders = function(headers)
     end
 
     return nil
+end
+
+local matchesContentTypesList = function(contentType, contentTypesList)
+    if contentType == nil
+    then
+        return false
+    end
+
+    for contentTypeListItem in contentTypesList do
+        if string.match(contentType, contentTypeListItem)
+        then
+            return true
+        end
+    end
+    return false
 end
 
 local cjson = (function(validateJson)
@@ -74,101 +94,90 @@ if res then
 --    ngx.say("status: ", res.status)
 --    ngx.say("body:")
 --    ngx.print(res.body)
-    local ssiResponses = {}
     local body = res.body
-    local totalSsiSubRequestsCount = 0
-    local totalSsiIncludesCount = 0
 
-    local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
-
-    while ssiMatchesCount > 0
-    do
-        if (ssiRequestsCount > 0)
-        then
-            -- FIXME: handle ssiRequestsCount > 200, because this is the internal nginx limit
-            -- issue all the requests at once and wait until they all return
-            local resps = { ngx.location.capture_multi(ssiRequests) }
-
-            -- loop over the responses table
-            for i, resp in ipairs(resps) do
-    --            ngx.log(ngx.STDERR, "resp ", i, " with ", resp.status, " and body ", resp.body)
-    --            ngx.log(ngx.STDERR, "url ", ssiRequests[i][1])
-                ssiResponses[ssiRequests[i][1]] = resp
-                -- process the response table "resp"
-            end
-        end
-
-        local replacer = function(w)
-            local ssiVirtualPath = string.match(w, '<!%-%-# include file="([^"]+)" %-%->')
-            if (ssiResponses[prefix .. ssiVirtualPath] == nil)
-            then
-                ngx.log(ngx.STDERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
-                return w
-            else
-                return ssiResponses[prefix .. ssiVirtualPath].body
-            end
-        end
-
-        totalSsiSubRequestsCount = totalSsiSubRequestsCount + ssiRequestsCount
-        totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
-
-        body = string.gsub(body, regularExpression, replacer)
-        ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
-    end
-    local md5 = ngx.md5(body)
---    ngx.log(ngx.STDERR, "sent?", ngx.headers_sent)
---    ngx.log(ngx.STDERR, "md5", md5)
-    ngx.log(ngx.STDERR, "ssiRequestsCount", totalSsiSubRequestsCount)
-    ngx.ctx.etag = '"' .. md5 .. '"'
-    ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
-    ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
-    ngx.ctx.res = res
-
-    if (validateJson)
+    if matchesContentTypesList(contentType, ssiTypes)
     then
-        ngx.log(ngx.STDERR, "check if content type matches: ", contentType)
-        validateJson = false
-        if contentType
-        then
-            for validateJsonType in validateJsonTypes do
-                if string.match(contentType, validateJsonType)
-                then
-                    validateJson = true
-                    break
-                end
-            end
-            if not validateJson
-            then
-                ngx.log(ngx.STDERR, "disable validation, because content type does not match")
-            end
-        end
-    end
+        local ssiResponses = {}
+        local totalSsiSubRequestsCount = 0
+        local totalSsiIncludesCount = 0
 
-    if cjson and validateJson
-    then
-        local value, errorMessage = cjson.decode(body)
-        if errorMessage then
-            body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
-            body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+        local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
 
-            if totalSsiSubRequestsCount ~= 0
+        while ssiMatchesCount > 0
+        do
+            if (ssiRequestsCount > 0)
             then
-                local bodyTable = cjson.decode(body)
-                bodyTable.brokenSsiRequests = {}
+                -- FIXME: handle ssiRequestsCount > 200, because this is the internal nginx limit
+                -- issue all the requests at once and wait until they all return
+                local resps = { ngx.location.capture_multi(ssiRequests) }
+
                 -- loop over the responses table
-                for ssiRequestUrl, ssiResponse in pairs(ssiResponses) do
-                    ssiResponse = string.gsub(ssiResponse.body, regularExpression, "{}")
-                    local ssiResponseDecodedValue, ssiResponseDecodingErrorMessage = cjson.decode(ssiResponse)
-                    if (ssiResponseDecodingErrorMessage)
-                    then
-                        table.insert(bodyTable.brokenSsiRequests, {url = string.sub(ssiRequestUrl, string.len(prefix) + 1), message = ssiResponseDecodingErrorMessage })
-                    end
+                for i, resp in ipairs(resps) do
+        --            ngx.log(ngx.STDERR, "resp ", i, " with ", resp.status, " and body ", resp.body)
+        --            ngx.log(ngx.STDERR, "url ", ssiRequests[i][1])
+                    ssiResponses[ssiRequests[i][1]] = resp
+                    -- process the response table "resp"
                 end
+            end
 
-                body = cjson.encode(bodyTable)
+            local replacer = function(w)
+                local ssiVirtualPath = string.match(w, '<!%-%-# include file="([^"]+)" %-%->')
+                if (ssiResponses[prefix .. ssiVirtualPath] == nil)
+                then
+                    ngx.log(ngx.STDERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
+                    return w
+                else
+                    return ssiResponses[prefix .. ssiVirtualPath].body
+                end
+            end
+
+            totalSsiSubRequestsCount = totalSsiSubRequestsCount + ssiRequestsCount
+            totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
+
+            body = string.gsub(body, regularExpression, replacer)
+            ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
+        end
+
+        local md5 = ngx.md5(body)
+--        ngx.log(ngx.STDERR, "ssiRequestsCount", totalSsiSubRequestsCount)
+        ngx.ctx.etag = '"' .. md5 .. '"'
+        ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
+        ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
+
+        if (validateJson)
+        then
+            ngx.log(ngx.STDERR, "check if content type matches: ", contentType)
+            validateJson = matchesContentTypesList(contentType, validateJsonTypes)
+        end
+
+        if cjson and validateJson
+        then
+            local value, errorMessage = cjson.decode(body)
+            if errorMessage then
+                body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
+                body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+
+                if totalSsiSubRequestsCount ~= 0
+                then
+                    local bodyTable = cjson.decode(body)
+                    bodyTable.brokenSsiRequests = {}
+                    -- loop over the responses table
+                    for ssiRequestUrl, ssiResponse in pairs(ssiResponses) do
+                        ssiResponse = string.gsub(ssiResponse.body, regularExpression, "{}")
+                        local ssiResponseDecodedValue, ssiResponseDecodingErrorMessage = cjson.decode(ssiResponse)
+                        if (ssiResponseDecodingErrorMessage)
+                        then
+                            table.insert(bodyTable.brokenSsiRequests, {url = string.sub(ssiRequestUrl, string.len(prefix) + 1), message = ssiResponseDecodingErrorMessage })
+                        end
+                    end
+
+                    body = cjson.encode(bodyTable)
+                end
             end
         end
     end
 
+    ngx.ctx.res = res
     ngx.print(body)
 end

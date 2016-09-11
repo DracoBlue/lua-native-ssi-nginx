@@ -8,7 +8,7 @@ This is an effort to replace nginx's c ssi implementation with a flexible native
 
 This solution has some  advantages over the c ssi version:
 
-* it (will) allow regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
+* it allows regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
 * it works with lua module
 * it generates and handles etags based on md5 *after* all ssi includes have been performed
 * it handles and sanitizes invalid json in subrequests
@@ -47,6 +47,22 @@ location / {
 ```
 
 The `ssi-api-gateway` location is necessary to use e.g. nginx's caching layer and such things.
+
+## Activate SSI only for specific content types
+
+If you want to enable ssi only for specific content types, use the following nginx configuration variable in the nginx
+location:
+
+``` txt
+set $ssi_types "text/.*html application/.*json";
+```
+
+The default is:
+
+``` txt
+set $ssi_types ".*";
+```
+
 
 ## Activate JSON Validation
 
