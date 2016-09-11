@@ -2,12 +2,25 @@
 local prefix = ngx.var.ssi_api_gateway_prefix
 local invalidJsonFallback = ngx.var.ssi_invalid_json_fallback or '{"error": "invalid json in ssi", "url": %%URL%%, "message": %%MESSAGE%%}'
 local validateJson = false
-if ngx.var.ssi_validate_json == "true"
+local validateJsonTypes = {}
+if ngx.var.ssi_validate_json_types ~= ""
 then
     validateJson = true
+    validateJsonTypes = string.gmatch(ngx.var.ssi_validate_json_types, "%S+")
 end
 
 local res = ngx.location.capture(prefix .. ngx.var.request_uri, {method = ngx["HTTP_" .. ngx.var.request_method], body = ngx.var.request_body})
+
+local getContentTypeFromHeaders = function(headers)
+    for k, v in pairs(headers) do
+        if (string.lower(k) == "content-type" or string.lower(k) == "content_type")
+        then
+            return v
+        end
+    end
+
+    return nil
+end
 
 local cjson = (function(validateJson)
     if not validateJson then
@@ -57,6 +70,7 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
 end
 
 if res then
+    local contentType = getContentTypeFromHeaders(res.header)
 --    ngx.say("status: ", res.status)
 --    ngx.say("body:")
 --    ngx.print(res.body)
@@ -109,6 +123,26 @@ if res then
     ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
     ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
     ngx.ctx.res = res
+
+    if (validateJson)
+    then
+        ngx.log(ngx.STDERR, "check if content type matches: ", contentType)
+        validateJson = false
+        if contentType
+        then
+            for validateJsonType in validateJsonTypes do
+                if string.match(contentType, validateJsonType)
+                then
+                    validateJson = true
+                    break
+                end
+            end
+            if not validateJson
+            then
+                ngx.log(ngx.STDERR, "disable validation, because content type does not match")
+            end
+        end
+    end
 
     if cjson and validateJson
     then

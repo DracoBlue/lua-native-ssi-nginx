@@ -39,7 +39,7 @@ location /ssi-api-gateway/ {
 location / {
 	lua_need_request_body on; # otherwise the request_body is not available for POST requests!
 	set $ssi_api_gateway_prefix "/ssi-api-gateway";
-	set $ssi_validate_json true;
+	set $ssi_validate_json_types "application/json application/.*json";
 	set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
 	content_by_lua_file "/etc/nginx/lua-ssi-content.lua";
 	header_filter_by_lua_file "/etc/nginx/lua-ssi-header.lua";
@@ -56,7 +56,7 @@ The `ssi-api-gateway` location is necessary to use e.g. nginx's caching layer an
 If you want to ensure, that subrequested json is always valid, you can activate this in the nginx location:
 
 ``` txt
-set $ssi_validate_json true;
+set $ssi_validate_json_types "application/json application/.*json";
 set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
 ``` txt
 
