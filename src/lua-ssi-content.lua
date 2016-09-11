@@ -1,7 +1,7 @@
 
 local prefix = ngx.var.ssi_api_gateway_prefix
-local res = ngx.location.capture(prefix .. ngx.var.request_uri)
--- ngx.ctx
+
+local res = ngx.location.capture(prefix .. ngx.var.request_uri, {method = ngx["HTTP_" .. ngx.var.request_method], body = ngx.var.request_body})
 
 ngx.log(ngx.STDERR, "request_uri: ", prefix .. ngx.var.request_uri)
 local regularExpression = '<!%-%-# include file="[^"]+" %-%->'
