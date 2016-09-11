@@ -14,11 +14,12 @@ This solution has some  advantages over the c ssi version:
 
 ## Usage
 
-If you started with location like this:
+If you started with a location like this:
 
 ``` txt
 location / {
 	proxy_pass http://127.0.0.1:4777;
+	# add your proxy_* parameters and so on here
 }
 ```
 
@@ -29,6 +30,7 @@ location /ssi-api-gateway/ {
 	internal;
 	rewrite ^/ssi-api-gateway/(.*)$ /$1  break;
 	proxy_pass http://127.0.0.1:4777;
+	# add your proxy_* parameters and so on here
 }
 
 location / {
