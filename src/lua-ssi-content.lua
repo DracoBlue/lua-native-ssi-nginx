@@ -140,9 +140,13 @@ if res then
             ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
         end
 
-        local md5 = ngx.md5(body)
+        if ngx.status == 200
+        then
+            local md5 = ngx.md5(body)
+            ngx.ctx.etag = '"' .. md5 .. '"'
+        end
+
 --        ngx.log(ngx.STDERR, "ssiRequestsCount", totalSsiSubRequestsCount)
-        ngx.ctx.etag = '"' .. md5 .. '"'
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
 
@@ -175,8 +179,12 @@ if res then
 
                     body = cjson.encode(bodyTable)
                 end
+
+                ngx.ctx.etag = nil
+                ngx.status = 500
             end
         end
+
     end
 
     ngx.ctx.res = res
