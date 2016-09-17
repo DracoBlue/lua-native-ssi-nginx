@@ -74,7 +74,7 @@ If you want to ensure, that subrequested json is always valid, you can activate 
 ``` txt
 set $ssi_validate_json_types "application/json application/.*json";
 set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
-``` txt
+```
 
 If you setup the configuration like this, the following ssi:
 
