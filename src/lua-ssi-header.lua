@@ -11,10 +11,10 @@ then
     end
     ngx.header["Content-Length"] = nil
     if ngx.ctx.etag then
-        ngx.header["E-Tag"] = ngx.ctx.etag
+        ngx.header["ETag"] = ngx.ctx.etag
         local ifNoneMatch = ngx.req.get_headers()["If-None-Match"] or nil
         ngx.log(ngx.STDERR, "If-None-Match: ", ifNoneMatch)
-        ngx.log(ngx.STDERR, "E-Tag: ", ngx.ctx.etag)
+        ngx.log(ngx.STDERR, "ETag: ", ngx.ctx.etag)
 
         if ifNoneMatch == ngx.ctx.etag
         then
