@@ -12,8 +12,6 @@ This solution has some  advantages over the c ssi version:
 * it works with lua module
 * it generates and handles etags based on md5 *after* all ssi includes have been performed
 * it handles and sanitizes invalid json in subrequests
-* it (will) disable ssi if [Surrogate-Control](https://www.w3.org/TR/edge-arch/) Header is sent by origin and does not contain `content="SSI/1.0"`
-
 
 ## Usage
 
@@ -86,6 +84,7 @@ GET /broken_json_include/broken_sub_resource.json
 {"thisIsA": "subResource", "with invalud json}
 ```
 
+
 will result in the following valid json response:
 
 ``` json
@@ -128,6 +127,10 @@ $ ./run-tests.sh
   [OK] json_include
   [OK] one
 ```
+
+## TODOs
+
+See <https://github.com/DracoBlue/lua-native-ssi-nginx/issues> for all open TODOs.
 
 ## Changelog
 
