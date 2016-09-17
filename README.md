@@ -10,7 +10,7 @@ This solution has some  advantages over the c ssi version:
 
 * it allows regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
 * it works with lua module
-* it generates and handles etags based on md5 *after* all ssi includes have been performed
+* for `200 OK` responses it generates and handles etags based on md5 *after* all ssi includes have been performed
 * it handles and sanitizes invalid json in subrequests
 
 ## Usage
