@@ -91,6 +91,7 @@ end
 
 if res then
     local contentType = getContentTypeFromHeaders(res.header)
+    ngx.status = res.status
 --    ngx.say("status: ", res.status)
 --    ngx.say("body:")
 --    ngx.print(res.body)
