@@ -181,6 +181,7 @@ if res then
                 end
 
                 ngx.ctx.etag = nil
+                ngx.ctx.overrideContentType = "application/json";
                 ngx.status = 500
             end
         end

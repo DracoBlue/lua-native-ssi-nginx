@@ -9,6 +9,9 @@ then
     if ngx.ctx.ssiIncludesCount then
         ngx.header["X-Ssi-Includes"] = ngx.ctx.ssiIncludesCount
     end
+    if ngx.ctx.overrideContentType then
+        ngx.header["Content-Type"] = ngx.ctx.overrideContentType
+    end
     ngx.header["Content-Length"] = nil
     if ngx.ctx.etag then
         ngx.header["ETag"] = ngx.ctx.etag
