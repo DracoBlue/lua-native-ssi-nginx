@@ -6,12 +6,13 @@
 This is an effort to replace nginx's c ssi implementation with a flexible native lua based version, since nginx ssi does
 [not](https://github.com/openresty/lua-nginx-module#mixing-with-ssi-not-supported) work with the lua module.
 
-This solution has some  advantages over the c ssi version:
+This solution has some advantages over the c ssi version:
 
 * it allows regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
 * it works with lua module
 * for `200 OK` responses it generates and handles etags based on md5 *after* all ssi includes have been performed
 * it handles and sanitizes invalid json in subrequests
+* it handles **only**: `<!--#include virtual="PATH" -->` and `<!--#include virtual="PATH" -->` and no other ssi features
 
 ## Usage
 
