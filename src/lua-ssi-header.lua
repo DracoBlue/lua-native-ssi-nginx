@@ -16,8 +16,8 @@ then
     if ngx.ctx.etag then
         ngx.header["ETag"] = ngx.ctx.etag
         local ifNoneMatch = ngx.req.get_headers()["If-None-Match"] or nil
-        ngx.log(ngx.STDERR, "If-None-Match: ", ifNoneMatch)
-        ngx.log(ngx.STDERR, "ETag: ", ngx.ctx.etag)
+        ngx.log(ngx.DEBUG, "If-None-Match: ", ifNoneMatch)
+        ngx.log(ngx.DEBUG, "ETag: ", ngx.ctx.etag)
 
         if ifNoneMatch == ngx.ctx.etag
         then

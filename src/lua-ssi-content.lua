@@ -60,10 +60,10 @@ local cjson = (function(validateJson)
 end)(validateJson)
 
 if validateJson and not cjson then
-    ngx.log(ngx.STDERR, "Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!")
+    ngx.log(ngx.ERR, "Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!")
 end
 
-ngx.log(ngx.STDERR, "request_uri: ", prefix .. ngx.var.request_uri)
+ngx.log(ngx.DEBUG, "request_uri: ", prefix .. ngx.var.request_uri)
 local captureRegularFileExpression = '<!%-%-#%s*include file="([^"]+)"%s*%-%->'
 local captureRegularVirtualExpression = '<!%-%-#%s*include virtual="([^"]+)"%s*%-%->'
 local captureRegularFileExpressions = {captureRegularFileExpression,captureRegularVirtualExpression}
@@ -78,9 +78,9 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
         local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
         local matches = string.gmatch(body, regularExpression)
         for match,n in matches do
---          ngx.log(ngx.STDERR, "matches", match)
+--          ngx.log(ngx.DEBUG, "matches", match)
             local ssiVirtualPath = string.match(match, captureRegularExpression)
---          ngx.log(ngx.STDERR, "ssiVirtualPath", ssiVirtualPath)
+--          ngx.log(ngx.DEBUG, "ssiVirtualPath", ssiVirtualPath)
             if ssiResponses[prefix .. ssiVirtualPath] == nil and ssiRequestLock[prefix .. ssiVirtualPath] == nil
 --          if ssiResponses[prefix .. ssiVirtualPath] == nil
             then
@@ -121,8 +121,8 @@ if res then
 
                 -- loop over the responses table
                 for i, resp in ipairs(resps) do
-        --            ngx.log(ngx.STDERR, "resp ", i, " with ", resp.status, " and body ", resp.body)
-        --            ngx.log(ngx.STDERR, "url ", ssiRequests[i][1])
+        --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
+        --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
                     ssiResponses[ssiRequests[i][1]] = resp
                     -- process the response table "resp"
                 end
@@ -136,7 +136,7 @@ if res then
                     local ssiVirtualPath = string.match(w, captureRegularExpression)
                     if (ssiResponses[prefix .. ssiVirtualPath] == nil)
                     then
-                        ngx.log(ngx.STDERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
+                        ngx.log(ngx.ERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
                         return w
                     else
                         return ssiResponses[prefix .. ssiVirtualPath].body
@@ -157,13 +157,13 @@ if res then
             ngx.ctx.etag = '"' .. md5 .. '"'
         end
 
---        ngx.log(ngx.STDERR, "ssiRequestsCount", totalSsiSubRequestsCount)
+--        ngx.log(ngx.DEBUG, "ssiRequestsCount", totalSsiSubRequestsCount)
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
 
         if (validateJson)
         then
-            ngx.log(ngx.STDERR, "check if content type matches: ", contentType)
+            ngx.log(ngx.DEBUG, "check if content type matches: ", contentType)
             validateJson = matchesContentTypesList(contentType, validateJsonTypes)
         end
 
