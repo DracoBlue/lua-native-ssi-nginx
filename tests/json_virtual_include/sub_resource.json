@@ -1,0 +1,1 @@
+{"thisIsA": "subResource", "sub_sub_resources": [<!--# include virtual="/json_include/sub_sub_resource.json"-->, <!--#include virtual="/json_include/sub_sub_resource.json"-->, <!--# include virtual="/json_include/sub_sub_resource.json" -->]}

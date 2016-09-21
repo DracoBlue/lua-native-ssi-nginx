@@ -64,7 +64,9 @@ if validateJson and not cjson then
 end
 
 ngx.log(ngx.STDERR, "request_uri: ", prefix .. ngx.var.request_uri)
-local regularExpression = '<!%-%-# include file="[^"]+" %-%->'
+local captureRegularFileExpression = '<!%-%-#%s*include file="([^"]+)"%s*%-%->'
+local captureRegularVirtualExpression = '<!%-%-#%s*include virtual="([^"]+)"%s*%-%->'
+local captureRegularFileExpressions = {captureRegularFileExpression,captureRegularVirtualExpression}
 
 local getSsiRequestsAndCount = function(ssiResponses, body)
     local ssiRequests = {}
@@ -72,20 +74,24 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
     local ssiMatchesCount = 0
     local ssiRequestLock = {}
 
-    local matches = string.gmatch(body, regularExpression)
-    for match,n in matches do
---        ngx.log(ngx.STDERR, "matches", match)
-        local ssiVirtualPath = string.match(match, '<!%-%-# include file="([^"]+)" %-%->')
---        ngx.log(ngx.STDERR, "ssiVirtualPath", ssiVirtualPath)
-        if ssiResponses[prefix .. ssiVirtualPath] == nil and ssiRequestLock[prefix .. ssiVirtualPath] == nil
---        if ssiResponses[prefix .. ssiVirtualPath] == nil
-        then
-            ssiRequestLock[prefix .. ssiVirtualPath] = true
-            table.insert(ssiRequests, { prefix .. ssiVirtualPath })
-            ssiRequestsCount = ssiRequestsCount + 1
+    for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+        local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+        local matches = string.gmatch(body, regularExpression)
+        for match,n in matches do
+--          ngx.log(ngx.STDERR, "matches", match)
+            local ssiVirtualPath = string.match(match, captureRegularExpression)
+--          ngx.log(ngx.STDERR, "ssiVirtualPath", ssiVirtualPath)
+            if ssiResponses[prefix .. ssiVirtualPath] == nil and ssiRequestLock[prefix .. ssiVirtualPath] == nil
+--          if ssiResponses[prefix .. ssiVirtualPath] == nil
+            then
+                ssiRequestLock[prefix .. ssiVirtualPath] = true
+                table.insert(ssiRequests, { prefix .. ssiVirtualPath })
+                ssiRequestsCount = ssiRequestsCount + 1
+            end
+            ssiMatchesCount = ssiMatchesCount + 1
         end
-        ssiMatchesCount = ssiMatchesCount + 1
     end
+
     return ssiRequests, ssiRequestsCount, ssiMatchesCount
 end
 
@@ -122,21 +128,26 @@ if res then
                 end
             end
 
-            local replacer = function(w)
-                local ssiVirtualPath = string.match(w, '<!%-%-# include file="([^"]+)" %-%->')
-                if (ssiResponses[prefix .. ssiVirtualPath] == nil)
-                then
-                    ngx.log(ngx.STDERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
-                    return w
-                else
-                    return ssiResponses[prefix .. ssiVirtualPath].body
+
+            for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+
+                local replacer = function(w)
+                    local ssiVirtualPath = string.match(w, captureRegularExpression)
+                    if (ssiResponses[prefix .. ssiVirtualPath] == nil)
+                    then
+                        ngx.log(ngx.STDERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
+                        return w
+                    else
+                        return ssiResponses[prefix .. ssiVirtualPath].body
+                    end
                 end
+
+                body = string.gsub(body, regularExpression, replacer)
             end
 
             totalSsiSubRequestsCount = totalSsiSubRequestsCount + ssiRequestsCount
             totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
-
-            body = string.gsub(body, regularExpression, replacer)
             ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
         end
 
@@ -169,8 +180,12 @@ if res then
                     bodyTable.brokenSsiRequests = {}
                     -- loop over the responses table
                     for ssiRequestUrl, ssiResponse in pairs(ssiResponses) do
-                        ssiResponse = string.gsub(ssiResponse.body, regularExpression, "{}")
-                        local ssiResponseDecodedValue, ssiResponseDecodingErrorMessage = cjson.decode(ssiResponse)
+                        local ssiResponseBody = ssiResponse.body
+                        for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                            local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+                            ssiResponseBody = string.gsub(ssiResponseBody, regularExpression, "{}")
+                        end
+                        local ssiResponseDecodedValue, ssiResponseDecodingErrorMessage = cjson.decode(ssiResponseBody)
                         if (ssiResponseDecodingErrorMessage)
                         then
                             table.insert(bodyTable.brokenSsiRequests, {url = string.sub(ssiRequestUrl, string.len(prefix) + 1), message = ssiResponseDecodingErrorMessage })
