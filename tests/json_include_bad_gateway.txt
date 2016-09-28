@@ -1,1 +1,1 @@
-{"error":"invalid json","brokenSsiRequests":[{"url":"\/bad-gateway\/","message":"Expected value but found invalid token at character 1"}],"message":"Expected value but found invalid token at character 42","url":"\/json_include_bad_gateway\/"}
+{"thisIsThe": "index", "sub_resources": [{"error": "invalid json", "url": "\/json_include_bad_gateway\/", "message": "Expected value but found invalid token at character 1"}, {"error": "invalid json", "url": "\/json_include_bad_gateway\/", "message": "Expected value but found invalid token at character 1"}] }

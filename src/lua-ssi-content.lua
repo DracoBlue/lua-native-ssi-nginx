@@ -2,11 +2,16 @@
 local prefix = ngx.var.ssi_api_gateway_prefix
 local invalidJsonFallback = ngx.var.ssi_invalid_json_fallback or '{"error": "invalid json in ssi", "url": %%URL%%, "message": %%MESSAGE%%}'
 local validateJson = false
+local validateJsonInline = false
 local validateJsonTypes = {}
 if ngx.var.ssi_validate_json_types ~= nil and ngx.var.ssi_validate_json_types ~= ""
 then
     validateJson = true
     validateJsonTypes = string.gmatch(ngx.var.ssi_validate_json_types, "%S+")
+end
+if ngx.var.ssi_validate_json_inline ~= nil and ngx.var.ssi_validate_json_inline == "on"
+then
+    validateJsonInline = true
 end
 local ssiTypes = string.gmatch(".*", "%S+")
 if ngx.var.ssi_types ~= nil and ngx.var.ssi_types ~= ""
@@ -103,6 +108,12 @@ if res then
 --    ngx.print(res.body)
     local body = res.body
 
+    if (validateJson)
+    then
+        ngx.log(ngx.DEBUG, "check if content type matches: ", contentType)
+        validateJson = matchesContentTypesList(contentType, validateJsonTypes)
+    end
+
     if matchesContentTypesList(contentType, ssiTypes)
     then
         local ssiResponses = {}
@@ -123,8 +134,26 @@ if res then
                 for i, resp in ipairs(resps) do
         --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
         --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
+                    if validateJson and validateJsonInline
+                    then
+                        local bodyWithoutSsiIncludes = resp.body
+                        for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                            local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+                            bodyWithoutSsiIncludes = string.gsub(bodyWithoutSsiIncludes, regularExpression, "{}")
+                        end
+                        local value, errorMessage = cjson.decode(bodyWithoutSsiIncludes)
+                        if (errorMessage) then
+                            local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
+                            body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+                            resp.body = body
+                            ssiResponses[ssiRequests[i][1]] = resp
+                        else
+                            ssiResponses[ssiRequests[i][1]] = resp
+                        end
+                    end
+
                     ssiResponses[ssiRequests[i][1]] = resp
-                    -- process the response table "resp"
+        -- process the response table "resp"
                 end
             end
 
@@ -161,12 +190,6 @@ if res then
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
 
-        if (validateJson)
-        then
-            ngx.log(ngx.DEBUG, "check if content type matches: ", contentType)
-            validateJson = matchesContentTypesList(contentType, validateJsonTypes)
-        end
-
         if cjson and validateJson
         then
             local value, errorMessage = cjson.decode(body)
@@ -174,7 +197,7 @@ if res then
                 body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
                 body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
 
-                if totalSsiSubRequestsCount ~= 0
+                if totalSsiSubRequestsCount ~= 0 and not validateJsonInline
                 then
                     local bodyTable = cjson.decode(body)
                     bodyTable.brokenSsiRequests = {}

@@ -11,8 +11,8 @@ This solution has some advantages over the c ssi version:
 * it allows regexp for ssi types (because there are [no wildcards](http://stackoverflow.com/questions/34392175/using-gzip-types-ssi-types-in-nginx-with-wildcard-media-types) in c ssi_types)
 * it works with lua module
 * for `200 OK` responses it generates and handles etags based on md5 *after* all ssi includes have been performed
-* it handles and sanitizes invalid json in subrequests
-* it handles **only**: `<!--#include virtual="PATH" -->` and `<!--#include virtual="PATH" -->` and no other ssi features
+* it handles and sanitizes invalid json in subrequests (inline or as summary)
+* it handles **only**: `<!--#include file="PATH" -->` and `<!--#include virtual="PATH" -->` and no other ssi features
 
 ## Usage
 
@@ -63,7 +63,7 @@ set $ssi_types ".*";
 ```
 
 
-## Activate JSON Validation
+## Activate JSON Summary Validation
 
 **Prerequisites**: Install cjson (e.g. `apt-get install lua-cjson` to activate this feature. Otherwise you get the following message:
 `Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!`.
@@ -98,6 +98,44 @@ will result in the following valid json response:
 		}
 	],
 	"message": "Expected object key string but found unexpected end of string at character 91","url":"\/broken_json_include\/"
+}
+```
+
+## Activate JSON Inline Validation
+
+If you don't want to replace the entire SSI response with an error summary (like in the previous section), you can add:
+
+```
+set $ssi_validate_json_inline on;
+```
+
+and only the broken SSI will be replaced with the `$ssi_invalid_json_fallback`.
+
+**Important**: Please don't forget to define `$ssi_validate_json_types` and `$ssi_invalid_json_fallback` like described
+in the previous section!.
+
+So:
+
+``` txt
+GET /broken_json_include/
+{"thisIsThe": "index", "sub_resources": [<!--# include file="/broken_json_include/broken_sub_resource.json" -->] }
+
+GET /broken_json_include/broken_sub_resource.json
+{"thisIsA": "subResource", "with invalud json}
+```
+
+will result in the following valid json response:
+
+``` json
+{
+  "thisIsThe": "index",
+  "sub_resources": [
+    {
+      "error": "invalid json",
+      "url": "/broken_json_include/",
+      "message": "Expected object key string but found unexpected end of string at character 47"
+    }
+  ]
 }
 ```
 
