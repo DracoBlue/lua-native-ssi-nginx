@@ -36,7 +36,6 @@ location /ssi-api-gateway/ {
 }
 
 location / {
-	lua_need_request_body on; # otherwise the request_body is not available for POST requests!
 	set $ssi_api_gateway_prefix "/ssi-api-gateway";
 	set $ssi_validate_json_types "application/json application/.*json";
 	set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';

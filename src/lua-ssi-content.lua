@@ -19,7 +19,14 @@ then
     ssiTypes = string.gmatch(ngx.var.ssi_types, "%S+")
 end
 
-local res = ngx.location.capture(prefix .. ngx.var.request_uri, {method = ngx["HTTP_" .. ngx.var.request_method], body = ngx.var.request_body})
+ngx.req.read_body()
+
+local res = ngx.location.capture(
+    prefix .. ngx.var.request_uri, {
+        method = ngx["HTTP_" .. ngx.var.request_method],
+        always_forward_body = true
+    }
+)
 
 local getContentTypeFromHeaders = function(headers)
     for k, v in pairs(headers) do
