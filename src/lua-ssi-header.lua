@@ -1,4 +1,4 @@
-if not ngx.headers_sent
+if not ngx.headers_sent and ngx.ctx.res
 then
     for k, v in pairs(ngx.ctx.res.header) do
         ngx.header[k] = v
