@@ -1,6 +1,6 @@
 # lua-native-ssi-nginx CHANGELOG
 
-## dev
+## 1.0.1
 
 - handle header-only invocations (don't crash on empty `ngx.ctx.res`)
 - removed necessity for `lua_need_request_body on` in nginx
