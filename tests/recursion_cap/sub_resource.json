@@ -1,0 +1,1 @@
+{"thisIsA": "subResource", "sub_sub_resources": [<!--# include file="/recursion_cap/sub_sub_resource.json" -->, <!--# include file="/recursion_cap/sub_sub_resource.json" -->, <!--# include file="/recursion_cap/sub_sub_resource.json" -->]}

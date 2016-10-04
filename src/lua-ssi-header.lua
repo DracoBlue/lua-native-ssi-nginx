@@ -9,6 +9,9 @@ then
     if ngx.ctx.ssiIncludesCount then
         ngx.header["X-Ssi-Includes"] = ngx.ctx.ssiIncludesCount
     end
+    if ngx.ctx.ssiDepth then
+        ngx.header["X-Ssi-Depth"] = ngx.ctx.ssiDepth
+    end
     if ngx.ctx.overrideContentType then
         ngx.header["Content-Type"] = ngx.ctx.overrideContentType
     end

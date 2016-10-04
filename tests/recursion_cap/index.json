@@ -1,0 +1,1 @@
+{"thisIsThe": "index", "sub_resources": [<!--# include file="/recursion_cap/sub_resource.json" -->, <!--# include file="/recursion_cap/sub_resource.json" -->] }

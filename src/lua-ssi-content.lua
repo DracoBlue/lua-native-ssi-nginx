@@ -1,6 +1,17 @@
 
 local prefix = ngx.var.ssi_api_gateway_prefix
 local invalidJsonFallback = ngx.var.ssi_invalid_json_fallback or '{"error": "invalid json in ssi", "url": %%URL%%, "message": %%MESSAGE%%}'
+local maxSsiDepth = 1024
+local maxSsiIncludes = 65535
+if ngx.var.ssi_max_includes ~= nil and ngx.var.ssi_max_includes ~= ""
+then
+    maxSsiIncludes = tonumber(ngx.var.ssi_max_includes)
+end
+if ngx.var.ssi_max_ssi_depth ~= nil and ngx.var.ssi_max_ssi_depth ~= ""
+then
+    maxSsiDepth = tonumber(ngx.var.ssi_max_ssi_depth)
+end
+
 local validateJson = false
 local validateJsonInline = false
 local validateJsonTypes = {}
@@ -126,65 +137,97 @@ if res then
         local ssiResponses = {}
         local totalSsiSubRequestsCount = 0
         local totalSsiIncludesCount = 0
+        local totalSsiDepth = 0
 
         local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
 
         while ssiMatchesCount > 0
         do
-            if (ssiRequestsCount > 0)
+            totalSsiDepth = totalSsiDepth + 1
+            if (totalSsiDepth > maxSsiDepth or totalSsiIncludesCount > maxSsiIncludes) and ssiMatchesCount > 0
             then
-                -- FIXME: handle ssiRequestsCount > 200, because this is the internal nginx limit
-                -- issue all the requests at once and wait until they all return
-                local resps = { ngx.location.capture_multi(ssiRequests) }
+                if (totalSsiDepth > maxSsiDepth)
+                then
+                    ngx.log(ngx.ERR, "max recursion depth exceeded " .. maxSsiDepth .. "(was " .. totalSsiDepth .. ")")
+                else
+                    ngx.log(ngx.ERR, "max ssi includes exceeded " .. maxSsiIncludes .. "(was " .. totalSsiIncludesCount .. ")")
 
-                -- loop over the responses table
-                for i, resp in ipairs(resps) do
-        --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
-        --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
-                    if validateJson and validateJsonInline
-                    then
-                        local bodyWithoutSsiIncludes = resp.body
-                        for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
-                            local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
-                            bodyWithoutSsiIncludes = string.gsub(bodyWithoutSsiIncludes, regularExpression, "{}")
-                        end
-                        local value, errorMessage = cjson.decode(bodyWithoutSsiIncludes)
-                        if (errorMessage) then
-                            local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
-                            body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
-                            resp.body = body
-                            ssiResponses[ssiRequests[i][1]] = resp
+                end
+                for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                    local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+
+                    local replacer = function(w)
+                        local ssiVirtualPath = string.match(w, captureRegularExpression)
+                        local errorFallback = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ssiVirtualPath))
+                        if (totalSsiDepth > maxSsiDepth)
+                        then
+                            errorFallback = string.gsub(errorFallback, "%%%%MESSAGE%%%%", cjson.encode("max recursion depth exceeded " .. maxSsiDepth .. "(was " .. totalSsiDepth .. ")"))
                         else
-                            ssiResponses[ssiRequests[i][1]] = resp
+                            errorFallback = string.gsub(errorFallback, "%%%%MESSAGE%%%%", cjson.encode("max ssi includes exceeded " .. maxSsiIncludes .. "(was " .. totalSsiIncludesCount .. ")"))
+                        end
+                        return errorFallback
+                    end
+
+                    body = string.gsub(body, regularExpression, replacer)
+                end
+
+                ssiMatchesCount = 0
+            else
+                if (ssiRequestsCount > 0)
+                then
+                    -- FIXME: handle ssiRequestsCount > 200, because this is the internal nginx limit
+                    -- issue all the requests at once and wait until they all return
+                    local resps = { ngx.location.capture_multi(ssiRequests) }
+
+                    -- loop over the responses table
+                    for i, resp in ipairs(resps) do
+                        --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
+                        --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
+                        if validateJson and validateJsonInline
+                        then
+                            local bodyWithoutSsiIncludes = resp.body
+                            for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                                local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+                                bodyWithoutSsiIncludes = string.gsub(bodyWithoutSsiIncludes, regularExpression, "{}")
+                            end
+                            local value, errorMessage = cjson.decode(bodyWithoutSsiIncludes)
+                            if (errorMessage) then
+                                local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
+                                body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+                                resp.body = body
+                                ssiResponses[ssiRequests[i][1]] = resp
+                            else
+                                ssiResponses[ssiRequests[i][1]] = resp
+                            end
+                        end
+
+                        ssiResponses[ssiRequests[i][1]] = resp
+                        -- process the response table "resp"
+                    end
+                end
+
+
+                for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
+                    local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
+
+                    local replacer = function(w)
+                        local ssiVirtualPath = string.match(w, captureRegularExpression)
+                        if (ssiResponses[prefix .. ssiVirtualPath] == nil)
+                        then
+                            ngx.log(ngx.ERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
+                            return w
+                        else
+                            return ssiResponses[prefix .. ssiVirtualPath].body
                         end
                     end
 
-                    ssiResponses[ssiRequests[i][1]] = resp
-        -- process the response table "resp"
-                end
-            end
-
-
-            for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
-                local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
-
-                local replacer = function(w)
-                    local ssiVirtualPath = string.match(w, captureRegularExpression)
-                    if (ssiResponses[prefix .. ssiVirtualPath] == nil)
-                    then
-                        ngx.log(ngx.ERR, "did not capture multi with ssiVirtualPath ", ssiVirtualPath)
-                        return w
-                    else
-                        return ssiResponses[prefix .. ssiVirtualPath].body
-                    end
+                    body = string.gsub(body, regularExpression, replacer)
                 end
 
-                body = string.gsub(body, regularExpression, replacer)
+                totalSsiSubRequestsCount = totalSsiSubRequestsCount + ssiRequestsCount
+                totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
+                ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
             end
-
-            totalSsiSubRequestsCount = totalSsiSubRequestsCount + ssiRequestsCount
-            totalSsiIncludesCount = totalSsiIncludesCount + ssiMatchesCount
-            ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
         end
 
         if ngx.status == 200
@@ -196,6 +239,7 @@ if res then
 --        ngx.log(ngx.DEBUG, "ssiRequestsCount", totalSsiSubRequestsCount)
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
+        ngx.ctx.ssiDepth = totalSsiDepth
 
         if cjson and validateJson
         then

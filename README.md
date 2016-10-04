@@ -138,6 +138,43 @@ will result in the following valid json response:
 }
 ```
 
+## Limit recursion depth
+
+The default values for the maximum depth (1024) and the maximum amount of includes (65535) can be changed with the following
+configuration parameters:
+
+```
+set $ssi_max_includes 512;
+set $ssi_max_ssi_depth 16;
+```
+
+If the limit is exceeded, the ssi will be replaced with:
+
+``` json
+{
+	"error": "invalid json",
+	"url": "\/recursion_cap_depth\/sub_resource.json",
+	"message": "max recursion depth exceeded 16(was 17)"
+}
+```
+
+or
+
+``` json
+{
+	"error": "invalid json",
+	"url": "\/recursion_cap\/sub_resource.json",
+	"message": "max ssi includes exceeded 512(was 728)"
+}
+```
+
+
+You can change the response with:
+
+``` json
+set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
+```
+
 ## Development
 
 To run the tests locally launch:

@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.0.2
+
+- added recursion handling (depth and max includes)
+
 ## 1.0.1
 
 - handle header-only invocations (don't crash on empty `ngx.ctx.res`)
