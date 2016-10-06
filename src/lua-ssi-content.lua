@@ -192,7 +192,7 @@ if res then
                             end
                             local value, errorMessage = cjson.decode(bodyWithoutSsiIncludes)
                             if (errorMessage) then
-                                local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
+                                local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(string.sub(ssiRequests[i][1], string.len(prefix) + 1)))
                                 body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
                                 resp.body = body
                                 ssiResponses[ssiRequests[i][1]] = resp

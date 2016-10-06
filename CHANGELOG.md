@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.0.3
+
+- fixed url in inline json validation response
+
 ## 1.0.2
 
 - added recursion handling (depth and max includes)

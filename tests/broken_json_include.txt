@@ -1,1 +1,1 @@
-{"thisIsThe": "index", "sub_resources": [{"error": "invalid json", "url": "\/broken_json_include\/", "message": "Expected object key string but found unexpected end of string at character 47"}] }
+{"thisIsThe": "index", "sub_resources": [{"error": "invalid json", "url": "\/broken_json_include\/broken_sub_resource.json", "message": "Expected object key string but found unexpected end of string at character 47"}] }
