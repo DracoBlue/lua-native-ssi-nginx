@@ -203,6 +203,38 @@ $ ./run-tests.sh
   [OK] one
 ```
 
+## FAQ
+
+### Subrequests hang when used with lua native ssi
+
+The following setup is often used, to avoid buffering on disk:
+
+``` text
+proxy_buffer_size          16k;
+proxy_buffering         on;
+proxy_max_temp_file_size 0;
+```
+
+but it will result in hanging requests, if the response size is bigger then 16k.
+
+That's why you should either use (means: disable buffering at all):
+
+``` text
+proxy_buffer_size          16k;
+proxy_buffering         off;
+```
+
+or (means: store up to 1024m in temp file)
+
+``` text
+proxy_buffer_size          16k;
+proxy_buffering         on;
+proxy_max_temp_file_size 1024m;
+```
+
+to work around this issue.
+
+
 ## TODOs
 
 See <https://github.com/DracoBlue/lua-native-ssi-nginx/issues> for all open TODOs.

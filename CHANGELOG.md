@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## dev
+
+- added explanation for `proxy_max_temp_file_size 0` vs `proxy_buffering on`
+
 ## 1.0.3
 
 - fixed url in inline json validation response
