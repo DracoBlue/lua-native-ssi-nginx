@@ -35,7 +35,7 @@ ngx.req.read_body()
 local res = ngx.location.capture(
     prefix .. ngx.var.request_uri, {
         method = ngx["HTTP_" .. ngx.var.request_method],
-        always_forward_body = true
+        body = ngx.req.get_body_data()
     }
 )
 

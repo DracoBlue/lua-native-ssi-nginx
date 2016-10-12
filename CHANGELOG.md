@@ -3,6 +3,7 @@
 ## dev
 
 - added explanation for `proxy_max_temp_file_size 0` vs `proxy_buffering on`
+- removed `always_forward_body` because it does not always send all data to the first request
 
 ## 1.0.3
 
