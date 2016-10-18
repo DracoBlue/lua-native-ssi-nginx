@@ -82,6 +82,18 @@ local cjson = (function(validateJson)
     return false
 end)(validateJson)
 
+local generateJsonErrorFallback = function(url, message)
+    local escapedUrl = cjson.encode(url)
+    local escapedMessage = cjson.encode(message)
+
+    local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", function()
+        return escapedUrl
+    end)
+    return string.gsub(body, "%%%%MESSAGE%%%%", function()
+        return escapedMessage
+    end)
+end
+
 if validateJson and not cjson then
     ngx.log(ngx.ERR, "Even though ssi_validate_json is true, the cjson library is not installed! Skip validation!")
 end
@@ -158,14 +170,12 @@ if res then
 
                     local replacer = function(w)
                         local ssiVirtualPath = string.match(w, captureRegularExpression)
-                        local errorFallback = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ssiVirtualPath))
                         if (totalSsiDepth > maxSsiDepth)
                         then
-                            errorFallback = string.gsub(errorFallback, "%%%%MESSAGE%%%%", cjson.encode("max recursion depth exceeded " .. maxSsiDepth .. "(was " .. totalSsiDepth .. ")"))
+                            return generateJsonErrorFallback(ssiVirtualPath, "max recursion depth exceeded " .. maxSsiDepth .. "(was " .. totalSsiDepth .. ")")
                         else
-                            errorFallback = string.gsub(errorFallback, "%%%%MESSAGE%%%%", cjson.encode("max ssi includes exceeded " .. maxSsiIncludes .. "(was " .. totalSsiIncludesCount .. ")"))
+                            return generateJsonErrorFallback(ssiVirtualPath, "max ssi includes exceeded " .. maxSsiIncludes .. "(was " .. totalSsiIncludesCount .. ")")
                         end
-                        return errorFallback
                     end
 
                     body = string.gsub(body, regularExpression, replacer)
@@ -192,9 +202,7 @@ if res then
                             end
                             local value, errorMessage = cjson.decode(bodyWithoutSsiIncludes)
                             if (errorMessage) then
-                                local body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(string.sub(ssiRequests[i][1], string.len(prefix) + 1)))
-                                body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
-                                resp.body = body
+                                resp.body = generateJsonErrorFallback(string.sub(ssiRequests[i][1], string.len(prefix) + 1), errorMessage)
                                 ssiResponses[ssiRequests[i][1]] = resp
                             else
                                 ssiResponses[ssiRequests[i][1]] = resp
@@ -245,8 +253,7 @@ if res then
         then
             local value, errorMessage = cjson.decode(body)
             if errorMessage then
-                body = string.gsub(invalidJsonFallback, "%%%%URL%%%%", cjson.encode(ngx.var.request_uri))
-                body = string.gsub(body, "%%%%MESSAGE%%%%", cjson.encode(errorMessage))
+                body = generateJsonErrorFallback(ngx.var.request_uri, errorMessage)
 
                 if totalSsiSubRequestsCount ~= 0 and not validateJsonInline
                 then
