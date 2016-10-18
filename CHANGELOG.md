@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.2.0
+
+- fixed internal server error on percent in url or message
+
 ## 1.1.0
 
 - added explanation for `proxy_max_temp_file_size 0` vs `proxy_buffering on`
