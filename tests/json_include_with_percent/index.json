@@ -1,0 +1,1 @@
+{"thisIsThe": "index", "sub_resources": [<!--# include file="/json_include_with_percent/sub_resource.json" -->, <!--# include file="/json_include_with_percent/sub_resource.json" -->] }

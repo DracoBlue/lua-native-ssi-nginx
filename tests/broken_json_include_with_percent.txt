@@ -1,0 +1,1 @@
+{"thisIsThe": "index", "sub_resources": [{"error": "invalid json", "url": "\/broken_json_include_with_percent\/sub_resource.json?fa=%20%1", "message": "Expected value but found invalid token at character 13"}, {"error": "invalid json", "url": "\/broken_json_include_with_percent\/sub_resource.json?fa=%20%1", "message": "Expected value but found invalid token at character 13"}] }
