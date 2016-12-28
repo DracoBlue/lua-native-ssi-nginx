@@ -1,4 +1,4 @@
-FROM dracoblue/nginx-extras:1.10.1-0
+FROM dracoblue/nginx-extras:1.10.1-3
 RUN apt-get update
 RUN apt-get install lua-cjson
 ADD .travis/port-4777-app.conf /etc/nginx/sites-enabled/port-4777-app.conf
