@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.3.0
+
+- render ssi error, if relative path is in ssi include
+
 ## 1.2.0
 
 - fixed internal server error on percent in url or message

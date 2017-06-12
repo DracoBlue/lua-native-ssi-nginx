@@ -120,8 +120,12 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
 --          if ssiResponses[prefix .. ssiVirtualPath] == nil
             then
                 ssiRequestLock[prefix .. ssiVirtualPath] = true
-                table.insert(ssiRequests, { prefix .. ssiVirtualPath })
-                ssiRequestsCount = ssiRequestsCount + 1
+                if string.sub(ssiVirtualPath, 0, 1) == "/" then
+                    table.insert(ssiRequests, { prefix .. ssiVirtualPath })
+                    ssiRequestsCount = ssiRequestsCount + 1
+                else
+                    ssiResponses[prefix .. ssiVirtualPath] = {body = generateJsonErrorFallback(ssiVirtualPath, "ssi virtual path must start with a /")}
+                end
             end
             ssiMatchesCount = ssiMatchesCount + 1
         end
