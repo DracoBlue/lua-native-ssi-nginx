@@ -124,7 +124,7 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
                     table.insert(ssiRequests, { prefix .. ssiVirtualPath })
                     ssiRequestsCount = ssiRequestsCount + 1
                 else
-                    ssiResponses[prefix .. ssiVirtualPath] = {body = generateJsonErrorFallback(ssiVirtualPath, "ssi virtual path must start with a /")}
+                    ssiResponses[prefix .. ssiVirtualPath] = {status = 500, header = {}, body = generateJsonErrorFallback(ssiVirtualPath, "ssi virtual path must start with a /")}
                 end
             end
             ssiMatchesCount = ssiMatchesCount + 1
