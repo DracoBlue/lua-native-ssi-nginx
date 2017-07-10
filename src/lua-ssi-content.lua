@@ -39,15 +39,23 @@ local res = ngx.location.capture(
     }
 )
 
-local getContentTypeFromHeaders = function(headers)
+local getSanitizedFieldFromHeaders = function(rawFieldName, headers)
+    local sanatizeHeaderFieldName = function(headerFieldName)
+        return string.gsub(string.lower(headerFieldName), "_", "-")
+    end
+    local sanatizedFieldName = sanatizeHeaderFieldName(rawFieldName)
     for k, v in pairs(headers) do
-        if (string.lower(k) == "content-type" or string.lower(k) == "content_type")
+        if sanatizeHeaderFieldName(k) == sanatizedFieldName
         then
             return v
         end
     end
 
     return nil
+end
+
+local getContentTypeFromHeaders = function(headers)
+    return getSanitizedFieldFromHeaders("content-type", headers)
 end
 
 local matchesContentTypesList = function(contentType, contentTypesList)
