@@ -14,7 +14,11 @@ do
 	TEST_NAME=`echo "$file" | cut -f 1 -d '.'`
 	if [ -f "$TEST_NAME.sh" ]
 	then
-		bash "$TEST_NAME.sh" > "${TEST_NAME}.result"
+		bash "$TEST_NAME.sh" $1 > "${TEST_NAME}.result"
+		current_exit_code="${?}"
+	elif [ -f "$TEST_NAME.lua" ]
+	then
+		docker run -it -v `pwd`/../:/usr/src/app --workdir /usr/src/app --rm pirogoeth/alpine-lua:5.2 lua5.2 tests/$TEST_NAME.lua > "${TEST_NAME}.result"
 		current_exit_code="${?}"
 	else
 		curl -sS "localhost:4778/${TEST_NAME}/" > "${TEST_NAME}.result"
