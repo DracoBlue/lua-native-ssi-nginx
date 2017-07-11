@@ -29,6 +29,11 @@ if ngx.var.ssi_types ~= nil and ngx.var.ssi_types ~= ""
 then
     ssiTypes = string.gmatch(ngx.var.ssi_types, "%S+")
 end
+local minimizeMaxAge = false
+if ngx.var.ssi_minimize_max_age ~= nil and ngx.var.ssi_minimize_max_age == "on"
+then
+    minimizeMaxAge = true
+end
 
 ngx.req.read_body()
 
@@ -178,6 +183,16 @@ if res then
 --    ngx.say("body:")
 --    ngx.print(res.body)
     local body = res.body
+    local cacheControlFields = getCacheControlFieldsFromHeaders(res.header)
+    local minimumCacheControlMaxAge = nil
+    local rootCacheControlMaxAge = nil
+    if minimizeMaxAge then
+        if cacheControlFields["max-age"] ~= nil then
+            rootCacheControlMaxAge = tonumber(cacheControlFields["max-age"])
+            minimumCacheControlMaxAge = tonumber(cacheControlFields["max-age"])
+            ngx.log(ngx.DEBUG, "cache-control root: " .. tostring(minimumCacheControlMaxAge))
+        end
+    end
 
     if (validateJson)
     then
@@ -236,6 +251,15 @@ if res then
                         --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
                         if validateJson and validateJsonInline
                         then
+                            if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
+                                local respCacheControlFields = getCacheControlFieldsFromHeaders(resp.header)
+                                if respCacheControlFields["max-age"] ~= nil and tonumber(respCacheControlFields["max-age"]) < minimumCacheControlMaxAge then
+                                    local respCacheControlMaxAge = tonumber(respCacheControlFields["max-age"])
+                                    ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+                                    minimumCacheControlMaxAge = respCacheControlMaxAge
+                                end
+                            end
+
                             local bodyWithoutSsiIncludes = resp.body
                             for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
                                 local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
@@ -324,6 +348,15 @@ if res then
         end
 
     end
+
+   if minimizeMaxAge and rootCacheControlMaxAge ~= minimumCacheControlMaxAge then
+       if minimumCacheControlMaxAge > 0
+       then
+           ngx.ctx.overrideCacheControl = "max-age=" .. minimumCacheControlMaxAge;
+       else
+           ngx.ctx.overrideCacheControl = "nocache, max-age=0";
+       end
+   end
 
     ngx.ctx.res = res
     ngx.print(body)
