@@ -39,7 +39,7 @@ local res = ngx.location.capture(
     }
 )
 
-local getSanitizedFieldFromHeaders = function(rawFieldName, headers)
+getSanitizedFieldFromHeaders = function(rawFieldName, headers)
     local sanatizeHeaderFieldName = function(headerFieldName)
         return string.gsub(string.lower(headerFieldName), "_", "-")
     end
@@ -54,11 +54,40 @@ local getSanitizedFieldFromHeaders = function(rawFieldName, headers)
     return nil
 end
 
-local getContentTypeFromHeaders = function(headers)
+getCacheControlFieldsFromHeaders = function(headers)
+    local cacheControlHeader = getSanitizedFieldFromHeaders("cache-control", headers)
+    if not cacheControlHeader then
+        return {}
+    end
+
+    local cacheControlHeaderPrefixedAndSuffixedWithAWhitespace = " " .. cacheControlHeader .. " "
+
+    local fields = {}
+    
+    for key in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)[%s,]-')
+    do
+        fields[key] = true
+    end
+
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)=([^%s,]+)[%s,]-')
+    do
+        fields[key] = value
+    end
+
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)="([^"]+)"[%s,]-')
+    do
+        fields[key] = value
+    end
+
+    return fields
+end
+
+
+getContentTypeFromHeaders = function(headers)
     return getSanitizedFieldFromHeaders("content-type", headers)
 end
 
-local matchesContentTypesList = function(contentType, contentTypesList)
+matchesContentTypesList = function(contentType, contentTypesList)
     if contentType == nil
     then
         return false
