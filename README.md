@@ -202,6 +202,8 @@ will return in `max-age=5` since 5 is the lowest `max-age` value.
 **Important**: If you activate this feature, all other Cache-Control directives will be removed and only `Cache-Control: max-age=300`
 (if the minimum max-age was 300) or `Cache-Control: max-age=0, nocache` (if the minimum was negative) will be served.
  Additional Cache-Control features like `stale-while-revalidate` or `stale-if-error` will be removed.
+ 
+Invalid max-age values will be replaced with `Cache-Control: nocache, max-age=0`.
 
 ## Development
 

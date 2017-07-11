@@ -190,6 +190,10 @@ if res then
         if cacheControlFields["max-age"] ~= nil then
             rootCacheControlMaxAge = tonumber(cacheControlFields["max-age"])
             minimumCacheControlMaxAge = tonumber(cacheControlFields["max-age"])
+            if minimumCacheControlMaxAge == nil then
+                ngx.log(ngx.ERR, "cache-control max-age is an invalid number: " .. tostring(cacheControlFields["max-age"]))
+                minimumCacheControlMaxAge = 0
+            end
             ngx.log(ngx.DEBUG, "cache-control root: " .. tostring(minimumCacheControlMaxAge))
         end
     end
@@ -253,10 +257,19 @@ if res then
                         then
                             if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
                                 local respCacheControlFields = getCacheControlFieldsFromHeaders(resp.header)
-                                if respCacheControlFields["max-age"] ~= nil and tonumber(respCacheControlFields["max-age"]) < minimumCacheControlMaxAge then
-                                    local respCacheControlMaxAge = tonumber(respCacheControlFields["max-age"])
-                                    ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
-                                    minimumCacheControlMaxAge = respCacheControlMaxAge
+                                local respCacheControlMaxAge = respCacheControlFields["max-age"] ~= nil and tonumber(respCacheControlFields["max-age"])
+                                if respCacheControlMaxAge == nil
+                                then
+                                    if respCacheControlFields["max-age"] ~= nil then
+                                        ngx.log(ngx.ERR, "sub request cache-control max-age is an invalid number: " .. tostring(respCacheControlFields["max-age"]))
+                                    end
+                                    minimumCacheControlMaxAge = 0
+                                else
+                                    if respCacheControlMaxAge < minimumCacheControlMaxAge then
+                                        local respCacheControlMaxAge = tonumber(respCacheControlFields["max-age"])
+                                        ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+                                        minimumCacheControlMaxAge = respCacheControlMaxAge
+                                    end
                                 end
                             end
 
