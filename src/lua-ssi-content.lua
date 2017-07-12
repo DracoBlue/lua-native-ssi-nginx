@@ -93,12 +93,23 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
     if respCacheControlMaxAge == nil
     then
         if respCacheControlFields["max-age"] ~= nil then
-            ngx.log(ngx.ERR, "sub request cache-control max-age is an invalid number: " .. tostring(respCacheControlFields["max-age"]))
+            ngx.log(ngx.ERR, "request cache-control max-age is an invalid number: " .. tostring(respCacheControlFields["max-age"]))
         end
         return 0
     end
 
-    ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+    local respCacheAge = tonumber(getSanitizedFieldFromHeaders("age", headers));
+
+    ngx.log(ngx.DEBUG, "request cache-control: " .. tostring(respCacheControlMaxAge) .. " and age: " .. tostring(respCacheAge))
+
+    if respCacheAge ~= nil then
+        respCacheControlMaxAge = respCacheControlMaxAge - respCacheAge
+    end
+
+    if respCacheControlMaxAge < 0 then
+        respCacheControlMaxAge = 0
+    end
+
     return respCacheControlMaxAge
 end
 

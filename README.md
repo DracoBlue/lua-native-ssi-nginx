@@ -178,8 +178,9 @@ set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "messa
 
 ## Minimize `max-age` in `Cache-Control`
 
-You can calculate the lowest `max-age` of the root document and all sub resources and return the lowest value. This
-feature is opt-in only and you can activate it like this:
+You can calculate the lowest `max-age` of the root document and all sub resources and return the lowest value. Additionally
+ it takes the `age` response header of the sub resources into account and decreases the `max-age` by this value. This
+ feature is opt-in only and you can activate it like this:
 
 ``` txt
 set $ssi_minimize_max_age on;
@@ -193,11 +194,11 @@ set $ssi_minimize_max_age off;
 
 An example:
 
-    /users (max-age=60), includes:
-       -> /users/1 (max-age=10)
-       -> /users/2 (max-age=5)
+    /users (max-age=60, age=0 -> ttl=60), includes:
+       -> /users/1 (max-age=10, age=7 -> ttl=3)
+       -> /users/2 (max-age=5, age=0 -> ttl=5)
 
-will return in `max-age=5` since 5 is the lowest `max-age` value.
+will return in `max-age=3` since 3 is the lowest ttl and thus the `max-age` value for the entire request.
 
 **Important**: If you activate this feature, all other Cache-Control directives will be removed and only `Cache-Control: max-age=300`
 (if the minimum max-age was 300) or `Cache-Control: max-age=0, nocache` (if the minimum was negative) will be served.
