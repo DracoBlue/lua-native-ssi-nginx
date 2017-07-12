@@ -15,6 +15,9 @@ then
     if ngx.ctx.overrideContentType then
         ngx.header["Content-Type"] = ngx.ctx.overrideContentType
     end
+    if ngx.ctx.overrideCacheControl then
+        ngx.header["Cache-Control"] = ngx.ctx.overrideCacheControl
+    end
     ngx.header["Content-Length"] = nil
     if ngx.ctx.etag then
         ngx.header["ETag"] = ngx.ctx.etag

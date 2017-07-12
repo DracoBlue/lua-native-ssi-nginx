@@ -29,6 +29,11 @@ if ngx.var.ssi_types ~= nil and ngx.var.ssi_types ~= ""
 then
     ssiTypes = string.gmatch(ngx.var.ssi_types, "%S+")
 end
+local minimizeMaxAge = false
+if ngx.var.ssi_minimize_max_age ~= nil and ngx.var.ssi_minimize_max_age == "on"
+then
+    minimizeMaxAge = true
+end
 
 ngx.req.read_body()
 
@@ -39,9 +44,13 @@ local res = ngx.location.capture(
     }
 )
 
-local getContentTypeFromHeaders = function(headers)
+getSanitizedFieldFromHeaders = function(rawFieldName, headers)
+    local sanatizeHeaderFieldName = function(headerFieldName)
+        return string.gsub(string.lower(headerFieldName), "_", "-")
+    end
+    local sanatizedFieldName = sanatizeHeaderFieldName(rawFieldName)
     for k, v in pairs(headers) do
-        if (string.lower(k) == "content-type" or string.lower(k) == "content_type")
+        if sanatizeHeaderFieldName(k) == sanatizedFieldName
         then
             return v
         end
@@ -50,7 +59,65 @@ local getContentTypeFromHeaders = function(headers)
     return nil
 end
 
-local matchesContentTypesList = function(contentType, contentTypesList)
+getCacheControlFieldsFromHeaders = function(headers)
+    local cacheControlHeader = getSanitizedFieldFromHeaders("cache-control", headers)
+    if not cacheControlHeader then
+        return {}
+    end
+
+    local cacheControlHeaderPrefixedAndSuffixedWithAWhitespace = " " .. cacheControlHeader .. " "
+
+    local fields = {}
+    
+    for key in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)[%s,]-')
+    do
+        fields[key] = true
+    end
+
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)=([^%s,]+)[%s,]-')
+    do
+        fields[key] = value
+    end
+
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)="([^"]+)"[%s,]-')
+    do
+        fields[key] = value
+    end
+
+    return fields
+end
+
+getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
+    local respCacheControlFields = getCacheControlFieldsFromHeaders(headers)
+    local respCacheControlMaxAge = (respCacheControlFields["max-age"] ~= nil and tonumber(respCacheControlFields["max-age"])) or nil
+    if respCacheControlMaxAge == nil
+    then
+        if respCacheControlFields["max-age"] ~= nil then
+            ngx.log(ngx.ERR, "request cache-control max-age is an invalid number: " .. tostring(respCacheControlFields["max-age"]))
+        end
+        return 0
+    end
+
+    local respCacheAge = tonumber(getSanitizedFieldFromHeaders("age", headers));
+
+    ngx.log(ngx.DEBUG, "request cache-control: " .. tostring(respCacheControlMaxAge) .. " and age: " .. tostring(respCacheAge))
+
+    if respCacheAge ~= nil then
+        respCacheControlMaxAge = respCacheControlMaxAge - respCacheAge
+    end
+
+    if respCacheControlMaxAge < 0 then
+        respCacheControlMaxAge = 0
+    end
+
+    return respCacheControlMaxAge
+end
+
+getContentTypeFromHeaders = function(headers)
+    return getSanitizedFieldFromHeaders("content-type", headers)
+end
+
+matchesContentTypesList = function(contentType, contentTypesList)
     if contentType == nil
     then
         return false
@@ -124,7 +191,7 @@ local getSsiRequestsAndCount = function(ssiResponses, body)
                     table.insert(ssiRequests, { prefix .. ssiVirtualPath })
                     ssiRequestsCount = ssiRequestsCount + 1
                 else
-                    ssiResponses[prefix .. ssiVirtualPath] = {body = generateJsonErrorFallback(ssiVirtualPath, "ssi virtual path must start with a /")}
+                    ssiResponses[prefix .. ssiVirtualPath] = {status = 500, header = {}, body = generateJsonErrorFallback(ssiVirtualPath, "ssi virtual path must start with a /")}
                 end
             end
             ssiMatchesCount = ssiMatchesCount + 1
@@ -141,6 +208,16 @@ if res then
 --    ngx.say("body:")
 --    ngx.print(res.body)
     local body = res.body
+    local minimumCacheControlMaxAge = nil
+    local rootCacheControlMaxAge = nil
+    if minimizeMaxAge then
+        rootCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
+        minimumCacheControlMaxAge = rootCacheControlMaxAge
+        if rootCacheControlMaxAge == 0 then
+            rootCacheControlMaxAge = nil
+        end
+        ngx.log(ngx.DEBUG, "cache-control root: " .. tostring(rootCacheControlMaxAge))
+    end
 
     if (validateJson)
     then
@@ -199,6 +276,14 @@ if res then
                         --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
                         if validateJson and validateJsonInline
                         then
+                            if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
+                                local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
+                                if respCacheControlMaxAge < minimumCacheControlMaxAge then
+                                    ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+                                    minimumCacheControlMaxAge = respCacheControlMaxAge
+                                end
+                            end
+
                             local bodyWithoutSsiIncludes = resp.body
                             for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
                                 local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
@@ -287,6 +372,15 @@ if res then
         end
 
     end
+
+   if minimizeMaxAge and rootCacheControlMaxAge ~= minimumCacheControlMaxAge then
+       if minimumCacheControlMaxAge > 0
+       then
+           ngx.ctx.overrideCacheControl = "max-age=" .. minimumCacheControlMaxAge;
+       else
+           ngx.ctx.overrideCacheControl = "nocache, max-age=0";
+       end
+   end
 
     ngx.ctx.res = res
     ngx.print(body)

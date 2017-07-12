@@ -13,6 +13,7 @@ This solution has some advantages over the c ssi version:
 * for `200 OK` responses it generates and handles etags based on md5 *after* all ssi includes have been performed
 * it handles and sanitizes invalid json in subrequests (inline or as summary)
 * it handles **only**: `<!--#include file="PATH" -->` and `<!--#include virtual="PATH" -->` and no other ssi features
+* it minimizes `max-age` of `Cache-Control` to the lowest value 
 
 ## Usage
 
@@ -174,6 +175,36 @@ You can change the response with:
 ``` json
 set $ssi_invalid_json_fallback '{"error": "invalid json", "url": %%URL%%, "message": %%MESSAGE%%}';
 ```
+
+## Minimize `max-age` in `Cache-Control`
+
+You can calculate the lowest `max-age` of the root document and all sub resources and return the lowest value. Additionally
+ it takes the `age` response header of the sub resources into account and decreases the `max-age` by this value. This
+ feature is opt-in only and you can activate it like this:
+
+``` txt
+set $ssi_minimize_max_age on;
+```
+
+The default is:
+
+``` txt
+set $ssi_minimize_max_age off;
+```
+
+An example:
+
+    /users (max-age=60, age=0 -> ttl=60), includes:
+       -> /users/1 (max-age=10, age=7 -> ttl=3)
+       -> /users/2 (max-age=5, age=0 -> ttl=5)
+
+will return in `max-age=3` since 3 is the lowest ttl and thus the `max-age` value for the entire request.
+
+**Important**: If you activate this feature, all other Cache-Control directives will be removed and only `Cache-Control: max-age=300`
+(if the minimum max-age was 300) or `Cache-Control: max-age=0, nocache` (if the minimum was negative) will be served.
+ Additional Cache-Control features like `stale-while-revalidate` or `stale-if-error` will be removed.
+ 
+Invalid max-age values will be replaced with `Cache-Control: nocache, max-age=0`.
 
 ## Development
 
