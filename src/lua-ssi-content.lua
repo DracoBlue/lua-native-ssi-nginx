@@ -74,12 +74,12 @@ getCacheControlFieldsFromHeaders = function(headers)
         fields[key] = true
     end
 
-    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)=([^%s,]+)[%s,]-')
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)%s*=%s*([^%s,]+)[%s,]-')
     do
         fields[key] = value
     end
 
-    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)="([^"]+)"[%s,]-')
+    for key, value in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, '[%s,]+([^=%s,]+)%s*=%s*"([^"]+)"[%s,]-')
     do
         fields[key] = value
     end
