@@ -69,7 +69,7 @@ getCacheControlFieldsFromHeaders = function(headers)
 
     local fields = {}
     
-    for key in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, ',[%s]-([^=%s,]+)[%s]-,')
+    for key in string.gmatch(cacheControlHeaderPrefixedAndSuffixedWithAWhitespace, ',[%s]-([^=%s,]+)[%s]-')
     do
         fields[key] = true
     end
