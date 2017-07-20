@@ -36,6 +36,21 @@ assertTable(
 assertTable(
     getCacheControlFieldsFromHeaders(
         {
+            cache_control = 'stale-while-revalidate = "124",max-age = 123,stale-if-error = 123,public,private'
+        }
+    ),
+    {
+        ['stale-while-revalidate']="124",
+        ['max-age']="123",
+        ['stale-if-error']="123",
+        ['public']=true,
+        ['private']=true,
+    }
+)
+
+assertTable(
+    getCacheControlFieldsFromHeaders(
+        {
             cache_control = 'stale-while-revalidate="124",max-age=123,private'
         }
     ),

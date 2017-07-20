@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.4.1
+
+- allow spaces around cache control directives
+
 ## 1.4.0
 
 - added possibility to minimize `max-age` of the response by `age` and `max-age` of all sub requests
