@@ -17,6 +17,7 @@ then
     end
     if ngx.ctx.overrideCacheControl then
         ngx.header["Cache-Control"] = ngx.ctx.overrideCacheControl
+        ngx.header["Age"] = "0"
     end
     ngx.header["Content-Length"] = nil
     if ngx.ctx.etag then

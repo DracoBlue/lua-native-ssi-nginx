@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.4.2
+
+- set age to 0 if cache control max age is minizimed
+
 ## 1.4.1
 
 - allow spaces around cache control directives
