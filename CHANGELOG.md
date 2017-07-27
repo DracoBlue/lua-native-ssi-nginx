@@ -1,5 +1,9 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## dev
+
+- log subrequest url in debug log
+
 ## 1.4.2
 
 - set age to 0 if cache control max age is minizimed

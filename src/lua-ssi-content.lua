@@ -273,7 +273,7 @@ if res then
                     -- loop over the responses table
                     for i, resp in ipairs(resps) do
                         --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
-                        --            ngx.log(ngx.DEBUG, "url ", ssiRequests[i][1])
+                        ngx.log(ngx.DEBUG, "sub request url ", ssiRequests[i][1], " and status ", resp.status)
                         if validateJson and validateJsonInline
                         then
                             if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
