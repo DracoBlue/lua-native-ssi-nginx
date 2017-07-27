@@ -2,6 +2,7 @@
 
 ## dev
 
+- handle stale-while-revalidate when minimizing max-cache
 - log subrequest url in debug log
 
 ## 1.4.2
