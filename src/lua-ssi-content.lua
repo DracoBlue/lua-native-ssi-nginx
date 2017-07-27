@@ -109,6 +109,10 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
     
     if respCacheSwr ~= nil then
         respCacheControlMaxAge = respCacheControlMaxAge + respCacheSwr
+    else
+        if respCacheControlFields["stale-while-revalidate"] ~= nil then
+            ngx.log(ngx.ERR, "request cache-control stale-while-revalidate is an invalid number: " .. tostring(respCacheControlFields["stale-while-revalidate"]))
+        end
     end
 
     if respCacheControlMaxAge < 0 then
