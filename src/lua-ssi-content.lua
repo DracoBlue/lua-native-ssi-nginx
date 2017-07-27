@@ -106,6 +106,10 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
     if respCacheAge ~= nil then
         respCacheControlMaxAge = respCacheControlMaxAge - respCacheAge
     end
+    
+    if respCacheSwr ~= nil then
+        respCacheControlMaxAge = respCacheControlMaxAge + respCacheSwr
+    end
 
     if respCacheControlMaxAge < 0 then
         respCacheControlMaxAge = 0
