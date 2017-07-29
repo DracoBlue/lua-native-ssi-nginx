@@ -99,7 +99,7 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
     end
 
     local respCacheAge = tonumber(getSanitizedFieldFromHeaders("age", headers));    
-    local respCacheSwr = tonumber(getSanitizedFieldFromHeaders("stale-while-revalidate", headers));
+    local respCacheSwr = tonumber(respCacheControlFields["stale-while-revalidate"]);
     
     ngx.log(ngx.DEBUG, "request cache-control: " .. tostring(respCacheControlMaxAge) .. " and age: " .. tostring(respCacheAge) .. " and stale-while-revalidate: " .. tostring(respCacheSwr));
 
