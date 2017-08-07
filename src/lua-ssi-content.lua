@@ -382,7 +382,7 @@ if res then
 
     end
 
-   if minimizeMaxAge and rootCacheControlMaxAge ~= minimumCacheControlMaxAge then
+   if minimizeMaxAge then
        if minimumCacheControlMaxAge > 0
        then
            ngx.ctx.overrideCacheControl = "max-age=" .. minimumCacheControlMaxAge;
