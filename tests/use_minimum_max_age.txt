@@ -1,1 +1,1 @@
-< Cache-Control: max-age=5
+< Cache-Control: max-age=5, stale-while-revalidate=5
