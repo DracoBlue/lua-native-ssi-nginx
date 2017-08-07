@@ -1,6 +1,6 @@
 # lua-native-ssi-nginx CHANGELOG
 
-## dev
+## 1.5.0
 
 - added config to override stale-while-revalidate for minimized cache
 - handle stale-while-revalidate when minimizing max-cache
