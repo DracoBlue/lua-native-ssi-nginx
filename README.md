@@ -206,6 +206,14 @@ will return in `max-age=3` since 3 is the lowest ttl and thus the `max-age` valu
  
 Invalid max-age values will be replaced with `Cache-Control: nocache, max-age=0`.
 
+Additonally you may use:
+
+```
+		set $ssi_minimize_override_stale_while_revalidate 5;
+```
+
+to append `stale-while-revalidate=5` to each `Cache-Control` header with `max-age` greater than 0.
+
 ## Development
 
 To run the tests locally launch:

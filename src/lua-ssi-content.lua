@@ -34,6 +34,11 @@ if ngx.var.ssi_minimize_max_age ~= nil and ngx.var.ssi_minimize_max_age == "on"
 then
     minimizeMaxAge = true
 end
+local minimizeOverrideStaleWhileRevalidate = false
+if ngx.var.ssi_minimize_override_stale_while_revalidate ~= nil and ngx.var.ssi_minimize_override_stale_while_revalidate ~= ""
+then
+    minimizeOverrideStaleWhileRevalidate = tonumber(ngx.var.ssi_minimize_override_stale_while_revalidate)
+end
 
 ngx.req.read_body()
 
@@ -95,7 +100,7 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
         if respCacheControlFields["max-age"] ~= nil then
             ngx.log(ngx.ERR, "request cache-control max-age is an invalid number: " .. tostring(respCacheControlFields["max-age"]))
         end
-        return 0
+        return 0, tonumber(respCacheControlFields["stale-while-revalidate"] or 0)
     end
 
     local respCacheAge = tonumber(getSanitizedFieldFromHeaders("age", headers));    
@@ -119,7 +124,7 @@ getMaxAgeDecreasedByAgeOrZeroFromHeaders = function(headers)
         respCacheControlMaxAge = 0
     end
 
-    return respCacheControlMaxAge
+    return respCacheControlMaxAge, tonumber(respCacheControlFields["stale-while-revalidate"] or 0)
 end
 
 getContentTypeFromHeaders = function(headers)
@@ -219,8 +224,9 @@ if res then
     local body = res.body
     local minimumCacheControlMaxAge = nil
     local rootCacheControlMaxAge = nil
+    local rootCacheControlSwr = nil
     if minimizeMaxAge then
-        rootCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
+        rootCacheControlMaxAge, rootCacheControlSwr = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
         minimumCacheControlMaxAge = rootCacheControlMaxAge
         if rootCacheControlMaxAge == 0 then
             rootCacheControlMaxAge = nil
@@ -283,16 +289,16 @@ if res then
                     for i, resp in ipairs(resps) do
                         --            ngx.log(ngx.DEBUG, "resp ", i, " with ", resp.status, " and body ", resp.body)
                         ngx.log(ngx.DEBUG, "sub request url ", ssiRequests[i][1], " and status ", resp.status)
+                        if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
+                            local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
+                            if respCacheControlMaxAge < minimumCacheControlMaxAge then
+                                ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+                                minimumCacheControlMaxAge = respCacheControlMaxAge
+                            end
+                        end
+
                         if validateJson and validateJsonInline
                         then
-                            if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
-                                local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
-                                if respCacheControlMaxAge < minimumCacheControlMaxAge then
-                                    ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
-                                    minimumCacheControlMaxAge = respCacheControlMaxAge
-                                end
-                            end
-
                             local bodyWithoutSsiIncludes = resp.body
                             for i,captureRegularExpression in ipairs(captureRegularFileExpressions) do
                                 local regularExpression = string.gsub(captureRegularExpression, "([%(%)])", "")
@@ -386,9 +392,14 @@ if res then
        if minimumCacheControlMaxAge > 0
        then
            ngx.ctx.overrideCacheControl = "max-age=" .. minimumCacheControlMaxAge;
+
+           if rootCacheControlSwr and minimizeOverrideStaleWhileRevalidate then
+               ngx.ctx.overrideCacheControl = ngx.ctx.overrideCacheControl .. ", stale-while-revalidate=" .. minimizeOverrideStaleWhileRevalidate
+           end
        else
            ngx.ctx.overrideCacheControl = "nocache, max-age=0";
        end
+
    end
 
     ngx.ctx.res = res

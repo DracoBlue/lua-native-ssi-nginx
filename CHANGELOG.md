@@ -2,6 +2,7 @@
 
 ## dev
 
+- added config to override stale-while-revalidate for minimized cache
 - handle stale-while-revalidate when minimizing max-cache
 - log subrequest url in debug log
 
