@@ -397,7 +397,7 @@ if res then
                ngx.ctx.overrideCacheControl = ngx.ctx.overrideCacheControl .. ", stale-while-revalidate=" .. minimizeOverrideStaleWhileRevalidate
            end
        else
-           ngx.ctx.overrideCacheControl = "nocache, max-age=0";
+           ngx.ctx.overrideCacheControl = "no-cache, max-age=0";
        end
 
    end
