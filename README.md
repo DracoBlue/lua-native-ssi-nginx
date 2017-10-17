@@ -214,6 +214,22 @@ Additonally you may use:
 
 to append `stale-while-revalidate=5` to each `Cache-Control` header with `max-age` greater than 0.
 
+## Debug Output
+
+If you want to debug the lua ssi output or calculations, you should enable the debug log in nginx.
+
+If you need to debug one request and don't want to enable debug log for the entire server, you can send a special request
+header called `X-Ssi-Debug: true`.
+
+    $ curl -v -sS -H 'X-Ssi-Debug: true' "http://localhost:4778/max-age/include-stale-expires-in-120.json" 2>&1
+    < X-Ssi-Minimize-MaxAge-Url: /max-age/35-seconds/30-age/40-swr
+    < X-Ssi-Minimize-MaxAge-Age: 45
+    < X-Ssi-Minimize-MaxAge-Cache-Control: max-age=35, stale-while-revalidate=40
+    
+If you apply the `X-Ssi-Debug: true` request header, you will receive extra `X-Ssi-Minimize`-prefixed response headers.
+In those headers you can see, which of the ssi requests was the one, which resulted in the final max-age of the
+`Cache-Control` response header.
+
 ## Development
 
 To run the tests locally launch:
