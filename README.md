@@ -201,10 +201,10 @@ An example:
 will return in `max-age=3` since 3 is the lowest ttl and thus the `max-age` value for the entire request.
 
 **Important**: If you activate this feature, all other Cache-Control directives will be removed and only `Cache-Control: max-age=300`
-(if the minimum max-age was 300) or `Cache-Control: max-age=0, nocache` (if the minimum was negative) will be served.
+(if the minimum max-age was 300) or `Cache-Control: max-age=0, no-cache` (if the minimum was negative) will be served.
  Additional Cache-Control features like `stale-while-revalidate` or `stale-if-error` will be removed.
  
-Invalid max-age values will be replaced with `Cache-Control: nocache, max-age=0`.
+Invalid max-age values will be replaced with `Cache-Control: no-cache, max-age=0`.
 
 Additonally you may use:
 
