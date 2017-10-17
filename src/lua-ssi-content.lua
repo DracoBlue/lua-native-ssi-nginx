@@ -40,6 +40,10 @@ then
     minimizeOverrideStaleWhileRevalidate = tonumber(ngx.var.ssi_minimize_override_stale_while_revalidate)
 end
 
+local sanatizeHeaderFieldName = function(headerFieldName)
+    return string.gsub(string.lower(headerFieldName), "_", "-")
+end
+
 ngx.req.read_body()
 
 local res = ngx.location.capture(
@@ -50,9 +54,6 @@ local res = ngx.location.capture(
 )
 
 getSanitizedFieldFromHeaders = function(rawFieldName, headers)
-    local sanatizeHeaderFieldName = function(headerFieldName)
-        return string.gsub(string.lower(headerFieldName), "_", "-")
-    end
     local sanatizedFieldName = sanatizeHeaderFieldName(rawFieldName)
     for k, v in pairs(headers) do
         if sanatizeHeaderFieldName(k) == sanatizedFieldName
@@ -227,6 +228,9 @@ if res then
     local rootCacheControlSwr = nil
     if minimizeMaxAge then
         rootCacheControlMaxAge, rootCacheControlSwr = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
+        ngx.ctx.ssiMinimizeMaxAgeUrl = ngx.var.request_uri
+        ngx.ctx.ssiMinimizeMaxAgeAge = rootCacheControlMaxAge
+        ngx.ctx.ssiMinimizeMaxAgeCacheControl = getSanitizedFieldFromHeaders("cache-control", res.header)
         minimumCacheControlMaxAge = rootCacheControlMaxAge
         if rootCacheControlMaxAge == 0 then
             rootCacheControlMaxAge = nil
@@ -293,6 +297,9 @@ if res then
                             local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
                             if respCacheControlMaxAge < minimumCacheControlMaxAge then
                                 ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
+                                ngx.ctx.ssiMinimizeMaxAgeUrl = string.sub(ssiRequests[i][1], string.len(prefix) + 1)
+                                ngx.ctx.ssiMinimizeMaxAgeAge = respCacheControlMaxAge
+                                ngx.ctx.ssiMinimizeMaxAgeCacheControl = getSanitizedFieldFromHeaders("cache-control", resp.header)
                                 minimumCacheControlMaxAge = respCacheControlMaxAge
                             end
                         end

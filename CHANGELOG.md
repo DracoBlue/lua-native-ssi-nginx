@@ -1,5 +1,10 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.6.0
+
+- added `X-Ssi-Debug: true` request header to debug max age minimize behaviour
+- fixed `nocache` to `no-cache` in `cache-control` header
+
 ## 1.5.0
 
 - added config to override stale-while-revalidate for minimized cache

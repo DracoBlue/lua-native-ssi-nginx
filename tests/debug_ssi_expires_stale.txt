@@ -1,0 +1,1 @@
+< X-Ssi-Minimize-MaxAge-Age: 45< X-Ssi-Minimize-MaxAge-Cache-Control: max-age=35, stale-while-revalidate=40< X-Ssi-Minimize-MaxAge-Url: /max-age/35-seconds/30-age/40-swr
