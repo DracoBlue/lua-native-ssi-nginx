@@ -1,1 +1,1 @@
-< Cache-Control: nocache, max-age=0
+< Cache-Control: no-cache, max-age=0
