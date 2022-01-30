@@ -1,5 +1,10 @@
 # lua-native-ssi-nginx CHANGELOG
 
+## 1.7.0
+
+* Added Header `X-Ssi-Missing-CC-Count` to count the amount of missing cache control headers
+* Added log if cache-control was missing but cache minimizing is activated
+
 ## 1.6.0
 
 - added `X-Ssi-Debug: true` request header to debug max age minimize behaviour
