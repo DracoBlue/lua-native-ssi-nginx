@@ -21,6 +21,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Launch Nginx
+        env:
+          NGINX_VERSION: ${{ matrix.nginxVersion }}
+        run: ./launch-test-nginx.sh daemon $NGINX_VERSION
       - name: Run Tests
         env:
           NGINX_VERSION: ${{ matrix.nginxVersion }}
