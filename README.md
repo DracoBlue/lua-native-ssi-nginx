@@ -214,7 +214,7 @@ Additonally you may use:
 
 to append `stale-while-revalidate=5` to each `Cache-Control` header with `max-age` greater than 0.
 
-Starting with Version 1.7.0: If no `Cache-Control` header is send by subrequest, it will be handled like `max-age=0`. There is a header called `X-Ssi-Missing-Cache-Control-Count: 2`,
+Starting with Version 1.7.0: If no `Cache-Control` header is send by subrequest, it will be handled like `max-age=0`. There is a header called `X-Ssi-Missing-CC-Count: 2`,
 which makes the amount of subrequests missing a cache control header in this request. It will also appear in the log like this: 
 
 ```
