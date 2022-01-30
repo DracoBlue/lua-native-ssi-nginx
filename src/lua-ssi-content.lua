@@ -250,6 +250,7 @@ if res then
         local totalSsiSubRequestsCount = 0
         local totalSsiIncludesCount = 0
         local totalSsiDepth = 0
+        local totalMissingCacheControlCount = 0
 
         local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
 
@@ -295,6 +296,10 @@ if res then
                         ngx.log(ngx.DEBUG, "sub request url ", ssiRequests[i][1], " and status ", resp.status)
                         if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
                             local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
+                            if (getSanitizedFieldFromHeaders("cache-control", resp.header) == nil) then
+                                ngx.log(ngx.ERR, "missing cache control on sub request url: " .. ssiRequests[i][1])
+                                totalMissingCacheControlCount = totalMissingCacheControlCount + 1
+                            end
                             if respCacheControlMaxAge < minimumCacheControlMaxAge then
                                 ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
                                 ngx.ctx.ssiMinimizeMaxAgeUrl = string.sub(ssiRequests[i][1], string.len(prefix) + 1)
@@ -356,6 +361,7 @@ if res then
         end
 
 --        ngx.log(ngx.DEBUG, "ssiRequestsCount", totalSsiSubRequestsCount)
+        ngx.ctx.ssiMissingCacheControlCount = totalMissingCacheControlCount
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
         ngx.ctx.ssiDepth = totalSsiDepth
