@@ -226,8 +226,13 @@ if res then
     local minimumCacheControlMaxAge = nil
     local rootCacheControlMaxAge = nil
     local rootCacheControlSwr = nil
+    local totalMissingCacheControlCount = 0
     if minimizeMaxAge then
         rootCacheControlMaxAge, rootCacheControlSwr = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
+        if (getSanitizedFieldFromHeaders("cache-control", res.header) == nil) then
+            ngx.log(ngx.ERR, "missing cache control on root request url: " .. ngx.var.request_uri)
+            totalMissingCacheControlCount = totalMissingCacheControlCount + 1
+        end
         ngx.ctx.ssiMinimizeMaxAgeUrl = ngx.var.request_uri
         ngx.ctx.ssiMinimizeMaxAgeAge = rootCacheControlMaxAge
         ngx.ctx.ssiMinimizeMaxAgeCacheControl = getSanitizedFieldFromHeaders("cache-control", res.header)
@@ -250,7 +255,6 @@ if res then
         local totalSsiSubRequestsCount = 0
         local totalSsiIncludesCount = 0
         local totalSsiDepth = 0
-        local totalMissingCacheControlCount = 0
 
         local ssiRequests, ssiRequestsCount, ssiMatchesCount = getSsiRequestsAndCount(ssiResponses, body)
 

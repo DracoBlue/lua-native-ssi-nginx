@@ -221,6 +221,13 @@ which makes the amount of subrequests missing a cache control header in this req
 2022/01/30 09:17:05 [error] 7#7: *487 [lua] lua-ssi-content.lua:301: missing cache control on sub request url: /ssi-api-gateway/max-age/no-cache-control.json while sending to client, client: 172.17.0.1, server: , request: "GET /max-age/include-without-cache-control-expires-in-30.json HTTP/1.1", host: "localhost:4778"
 ```
 
+and on root it looks like this:
+
+```
+2022/01/30 09:17:05 [error] 7#7: *487 [lua] lua-ssi-content.lua:301: missing cache control on root request url: /ssi-api-gateway/max-age/no-cache-control.json while sending to client, client: 172.17.0.1, server: , request: "GET /max-age/no-cache-control.json HTTP/1.1", host: "localhost:4778"
+```
+
+
 ## Debug Output
 
 If you want to debug the lua ssi output or calculations, you should enable the debug log in nginx.
