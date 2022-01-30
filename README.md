@@ -1,7 +1,7 @@
 # lua-native-ssi-nginx
 
 * Latest Release: [![GitHub version](https://badge.fury.io/gh/DracoBlue%2Flua-native-ssi-nginx.png)](https://github.com/DracoBlue/lua-native-ssi-nginx/releases)
-* Build Status: [![Build Status](https://secure.travis-ci.org/DracoBlue/lua-native-ssi-nginx.png?branch=master)](http://travis-ci.org/DracoBlue/lua-native-ssi-nginx)
+* Build Status: [![Build Status](https://github.com/dracoblue/lua-native-ssi-nginx/actions/workflows/run-tests.yml/badge.svg?branch=master)](https://github.com/DracoBlue/lua-native-ssi-nginx/actions/workflows/run-tests.yml)
 
 This is an effort to replace nginx's c ssi implementation with a flexible native lua based version, since nginx ssi does
 [not](https://github.com/openresty/lua-nginx-module#mixing-with-ssi-not-supported) work with the lua module.
