@@ -1,0 +1,1 @@
+{"thisIsThe": "max-age index", "sub_resources": [<!--# include file="/max-age/35-seconds/30-age/40-swr" -->, <!--# include file="/max-age/no-cache-control.json" -->] }

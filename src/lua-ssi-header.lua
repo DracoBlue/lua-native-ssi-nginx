@@ -23,6 +23,9 @@ then
     if ngx.ctx.ssiDepth then
         ngx.header["X-Ssi-Depth"] = ngx.ctx.ssiDepth
     end
+    if ngx.ctx.ssiMissingCacheControlCount then
+        ngx.header["X-Ssi-Missing-CC-Count"] = ngx.ctx.ssiMissingCacheControlCount
+    end
     if requestHeaders["x-ssi-debug"] == "true" then
         ngx.header["X-Ssi-Minimize-MaxAge-Url"] = ngx.ctx.ssiMinimizeMaxAgeUrl
         ngx.header["X-Ssi-Minimize-MaxAge-Age"] = ngx.ctx.ssiMinimizeMaxAgeAge

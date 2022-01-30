@@ -226,8 +226,13 @@ if res then
     local minimumCacheControlMaxAge = nil
     local rootCacheControlMaxAge = nil
     local rootCacheControlSwr = nil
+    local totalMissingCacheControlCount = 0
     if minimizeMaxAge then
         rootCacheControlMaxAge, rootCacheControlSwr = getMaxAgeDecreasedByAgeOrZeroFromHeaders(res.header)
+        if (getSanitizedFieldFromHeaders("cache-control", res.header) == nil) then
+            ngx.log(ngx.ERR, "missing cache control on root request url: " .. ngx.var.request_uri)
+            totalMissingCacheControlCount = totalMissingCacheControlCount + 1
+        end
         ngx.ctx.ssiMinimizeMaxAgeUrl = ngx.var.request_uri
         ngx.ctx.ssiMinimizeMaxAgeAge = rootCacheControlMaxAge
         ngx.ctx.ssiMinimizeMaxAgeCacheControl = getSanitizedFieldFromHeaders("cache-control", res.header)
@@ -295,6 +300,10 @@ if res then
                         ngx.log(ngx.DEBUG, "sub request url ", ssiRequests[i][1], " and status ", resp.status)
                         if minimizeMaxAge and minimumCacheControlMaxAge ~= nil then
                             local respCacheControlMaxAge = getMaxAgeDecreasedByAgeOrZeroFromHeaders(resp.header)
+                            if (getSanitizedFieldFromHeaders("cache-control", resp.header) == nil) then
+                                ngx.log(ngx.ERR, "missing cache control on sub request url: " .. ssiRequests[i][1])
+                                totalMissingCacheControlCount = totalMissingCacheControlCount + 1
+                            end
                             if respCacheControlMaxAge < minimumCacheControlMaxAge then
                                 ngx.log(ngx.DEBUG, "sub request cache-control: " .. tostring(respCacheControlMaxAge))
                                 ngx.ctx.ssiMinimizeMaxAgeUrl = string.sub(ssiRequests[i][1], string.len(prefix) + 1)
@@ -356,6 +365,7 @@ if res then
         end
 
 --        ngx.log(ngx.DEBUG, "ssiRequestsCount", totalSsiSubRequestsCount)
+        ngx.ctx.ssiMissingCacheControlCount = totalMissingCacheControlCount
         ngx.ctx.ssiRequestsCount = totalSsiSubRequestsCount
         ngx.ctx.ssiIncludesCount = totalSsiIncludesCount
         ngx.ctx.ssiDepth = totalSsiDepth
